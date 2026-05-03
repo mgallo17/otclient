@@ -13,6 +13,7 @@ controller:registerEvents(g_game, {
         g_game.enableFeature(GameAllowPreWalk)
         g_game.enableFeature(GameMapCache)
         -- g_game.enableFeature(GameSmoothWalkElevation)
+        g_game.enableFeature(GameTileAddThingWithStackpos) -- needed for protocol <860 (Nostalrius 7.72)
 
         if version >= 750 then
             g_game.enableFeature(GameSoul)
