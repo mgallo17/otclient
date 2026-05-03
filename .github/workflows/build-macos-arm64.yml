@@ -1,0 +1,46 @@
+name: Build macOS ARM64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    name: Build OTClient macOS ARM64
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja luajit boost openssl zlib glew physfs \
+            libogg libvorbis openal-soft curl
+
+      - name: Setup vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $HOME/vcpkg
+          $HOME/vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          cmake --preset linux-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_TARGET_TRIPLET=arm64-osx \
+            -DVCPKG_ROOT=$HOME/vcpkg \
+            || cmake -B build -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT=$HOME/vcpkg
+          cmake --build build -j$(sysctl -n hw.logicalcpu)
+
+      - name: Package .app
+        run: |
+          mkdir -p dist/otclient.app/Contents/MacOS
+          cp build/otclient dist/otclient.app/Contents/MacOS/ 2>/dev/null || \
+          find build -name "otclient" -type f -exec cp {} dist/otclient.app/Contents/MacOS/ \;
+          cp -r data mods modules init.lua otclientrc.lua dist/otclient.app/Contents/MacOS/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: otclient-macos-arm64
+          path: dist/
+          retention-days: 30
