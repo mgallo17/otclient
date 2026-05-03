@@ -14,29 +14,27 @@ jobs:
       - name: Install dependencies
         run: |
           brew install cmake ninja luajit boost openssl zlib glew physfs \
-            libogg libvorbis openal-soft curl
-
-      - name: Setup vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git $HOME/vcpkg
-          $HOME/vcpkg/bootstrap-vcpkg.sh
-          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
+            libogg libvorbis openal-soft curl libpng
 
       - name: Build
         run: |
-          cmake --preset linux-release \
+          mkdir -p build && cd build
+          cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DVCPKG_TARGET_TRIPLET=arm64-osx \
-            -DVCPKG_ROOT=$HOME/vcpkg \
-            || cmake -B build -DCMAKE_BUILD_TYPE=Release -DVCPKG_ROOT=$HOME/vcpkg
-          cmake --build build -j$(sysctl -n hw.logicalcpu)
+            -DOPTION_VCPKG_SUBMODULE=OFF \
+            -DLUAJIT_INCLUDE_DIR=$(brew --prefix luajit)/include/luajit-2.1 \
+            -DLUAJIT_LIBRARY=$(brew --prefix luajit)/lib/libluajit-5.1.dylib \
+            -DOPENAL_INCLUDE_DIR=$(brew --prefix openal-soft)/include \
+            -DOPENAL_LIBRARY=$(brew --prefix openal-soft)/lib/libopenal.dylib \
+            -DBOOST_ROOT=$(brew --prefix boost) \
+            -G Ninja
+          ninja -j$(sysctl -n hw.logicalcpu)
 
-      - name: Package .app
+      - name: Package
         run: |
-          mkdir -p dist/otclient.app/Contents/MacOS
-          cp build/otclient dist/otclient.app/Contents/MacOS/ 2>/dev/null || \
-          find build -name "otclient" -type f -exec cp {} dist/otclient.app/Contents/MacOS/ \;
-          cp -r data mods modules init.lua otclientrc.lua dist/otclient.app/Contents/MacOS/ 2>/dev/null || true
+          mkdir -p dist
+          find build -name "otclient" -type f -exec cp {} dist/ \;
+          cp -r data mods modules init.lua otclientrc.lua dist/ 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
