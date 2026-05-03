@@ -14,7 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install cmake ninja luajit boost openssl zlib glew physfs \
-            libogg libvorbis openal-soft curl libpng protobuf
+            libogg libvorbis openal-soft curl libpng protobuf nlohmann-json
 
       - name: Build
         run: |
