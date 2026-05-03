@@ -1,0 +1,29 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build OTClient Android APK
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build APK via Docker
+        run: |
+          docker build \
+            --target apk-artifacts \
+            --output type=local,dest=./apk-output \
+            -f Dockerfile.android .
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: otclient-android-apk
+          path: apk-output/
+          retention-days: 30
