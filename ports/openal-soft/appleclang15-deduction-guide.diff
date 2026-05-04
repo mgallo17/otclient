@@ -1,0 +1,10 @@
+--- a/al/event.cpp
++++ b/al/event.cpp
+@@ -60,6 +60,9 @@ using namespace std::string_view_literals;
+ template<typename... Ts>
+ struct overloaded : Ts... { using Ts::operator()...; };
+ 
++template<class... Ts>
++overloaded(Ts...) -> overloaded<Ts...>;
++
+ auto EventThread(gsl::not_null<al::Context*> const context) -> void
