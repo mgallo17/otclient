@@ -1,23 +1,116 @@
-# Overlay port: use Homebrew openal-soft on macOS to avoid AppleClang 15 build failure
-set(VCPKG_BUILD_TYPE release)
+vcpkg_from_github(
+    OUT_SOURCE_PATH SOURCE_PATH
+    REPO kcat/openal-soft
+    REF ${VERSION}
+    SHA512 47eccb317ed6040c549f2b51d2d45afcdcd03d56d8cb0ea9ef8a98d2c61c9629ffad39596cffa2ad848dd3b65a227a6591406dc483ebd3a3e03bb0a4d0f112b1
+    HEAD_REF master
+    PATCHES
+        pkgconfig-cxx.diff
+        devendor-fmt.diff
+        appleclang15-deduction-guide.diff
+)
 
-find_path(OPENAL_INCLUDE_DIR "AL/al.h" HINTS "$ENV{HOMEBREW_PREFIX}/include" "/opt/homebrew/include" "/usr/local/include")
-find_library(OPENAL_LIBRARY NAMES openal "OpenAL" HINTS "$ENV{HOMEBREW_PREFIX}/lib" "/opt/homebrew/lib" "/usr/local/lib")
+vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+    FEATURES
+        pipewire    ALSOFT_BACKEND_PIPEWIRE
+        pipewire    ALSOFT_REQUIRE_PIPEWIRE
+        pulseaudio  ALSOFT_BACKEND_PULSEAUDIO
+        pulseaudio  ALSOFT_REQUIRE_PULSEAUDIO
+)
 
-if(NOT OPENAL_INCLUDE_DIR OR NOT OPENAL_LIBRARY)
-    message(FATAL_ERROR "openal-soft not found via Homebrew. Run: brew install openal-soft")
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "dynamic")
+    set(OPENAL_LIBTYPE "SHARED")
+else()
+    set(OPENAL_LIBTYPE "STATIC")
 endif()
 
-set(PACKAGE_VERSION "1.25.1")
+set(ALSOFT_REQUIRE_LINUX OFF)
+set(ALSOFT_REQUIRE_WINDOWS OFF)
+set(ALSOFT_REQUIRE_WINDOWS_NOT_UWP OFF)
+set(ALSOFT_REQUIRE_APPLE OFF)
+set(ALSOFT_CPUEXT_NEON OFF)
 
-file(INSTALL "${OPENAL_INCLUDE_DIR}/AL" DESTINATION "${CURRENT_PACKAGES_DIR}/include")
-file(INSTALL "${OPENAL_LIBRARY}" DESTINATION "${CURRENT_PACKAGES_DIR}/lib")
+if(VCPKG_TARGET_IS_LINUX)
+    set(ALSOFT_REQUIRE_LINUX ON)
+endif()
+if(VCPKG_TARGET_IS_WINDOWS)
+    set(ALSOFT_REQUIRE_WINDOWS ON)
+    if(NOT VCPKG_TARGET_IS_UWP)
+        set(ALSOFT_REQUIRE_WINDOWS_NOT_UWP ON)
+    endif()
+endif()
+if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_IOS)
+    set(ALSOFT_REQUIRE_APPLE ON)
+endif()
+if(VCPKG_TARGET_ARCHITECTURE STREQUAL "arm64")
+    set(ALSOFT_CPUEXT_NEON ON)
+endif()
 
-configure_file("${CMAKE_CURRENT_LIST_DIR}/OpenALConfig.cmake.in"
-    "${CURRENT_PACKAGES_DIR}/share/openal-soft/OpenALConfig.cmake" @ONLY)
+vcpkg_find_acquire_program(PKGCONFIG)
 
-file(WRITE "${CURRENT_PACKAGES_DIR}/share/openal-soft/vcpkg-cmake-wrapper.cmake"
-    "include(\"\${CMAKE_CURRENT_LIST_DIR}/OpenALConfig.cmake\")")
+vcpkg_cmake_configure(
+    SOURCE_PATH "${SOURCE_PATH}"
+    OPTIONS
+        ${FEATURE_OPTIONS}
+        -DALSOFT_CPUEXT_NEON=${ALSOFT_CPUEXT_NEON}
+        -DALSOFT_EXAMPLES=OFF
+        -DALSOFT_INSTALL_AMBDEC_PRESETS=OFF
+        -DALSOFT_INSTALL_CONFIG=OFF
+        -DALSOFT_INSTALL_HRTF_DATA=OFF
+        -DALSOFT_NO_CONFIG_UTIL=ON
+        -DALSOFT_UPDATE_BUILD_VERSION=OFF
+        -DALSOFT_UTILS=OFF
+        -DLIBTYPE=${OPENAL_LIBTYPE}
+        "-DPKG_CONFIG_EXECUTABLE=${PKGCONFIG}"
+        # order by CMakeLists.txt
+        -DALSOFT_BACKEND_ALSA=${ALSOFT_REQUIRE_LINUX}
+        -DALSOFT_REQUIRE_ALSA=${ALSOFT_REQUIRE_LINUX}
+        -DALSOFT_BACKEND_OSS=OFF
+        -DALSOFT_BACKEND_SOLARIS=OFF
+        -DALSOFT_BACKEND_SNDIO=OFF
+        -DALSOFT_BACKEND_WINMM=OFF
+        -DALSOFT_BACKEND_DSOUND=${ALSOFT_REQUIRE_WINDOWS_NOT_UWP}
+        -DALSOFT_REQUIRE_DSOUND=${ALSOFT_REQUIRE_WINDOWS_NOT_UWP}
+        -DALSOFT_BACKEND_WASAPI=${ALSOFT_REQUIRE_WINDOWS}
+        -DALSOFT_REQUIRE_WASAPI=${ALSOFT_REQUIRE_WINDOWS}
+        -DALSOFT_BACKEND_JACK=OFF
+        -DALSOFT_BACKEND_COREAUDIO=${ALSOFT_REQUIRE_APPLE}
+        -DALSOFT_REQUIRE_COREAUDIO=${ALSOFT_REQUIRE_APPLE}
+        -DALSOFT_BACKEND_OBOE=OFF
+        -DALSOFT_BACKEND_OPENSL=${VCPKG_TARGET_IS_ANDROID}
+        -DALSOFT_REQUIRE_OPENSL=${VCPKG_TARGET_IS_ANDROID}
+        -DALSOFT_BACKEND_PORTAUDIO=OFF
+        -DALSOFT_BACKEND_WAVE=ON
+    MAYBE_UNUSED_VARIABLES
+        # NOT WIN32
+        ALSOFT_BACKEND_ALSA
+        ALSOFT_REQUIRE_ALSA
+        ALSOFT_BACKEND_OSS
+        ALSOFT_BACKEND_SOLARIS
+        ALSOFT_BACKEND_SNDIO
+        # WIN32
+        ALSOFT_BACKEND_WINMM
+        ALSOFT_BACKEND_DSOUND
+        ALSOFT_REQUIRE_DSOUND
+        ALSOFT_BACKEND_WASAPI
+        ALSOFT_REQUIRE_WASAPI
+)
 
-file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/openal-soft")
-file(WRITE "${CURRENT_PACKAGES_DIR}/share/openal-soft/copyright" "OpenAL Soft - see https://github.com/kcat/openal-soft")
+vcpkg_cmake_install()
+vcpkg_copy_pdbs()
+vcpkg_cmake_config_fixup(CONFIG_PATH "lib/cmake/OpenAL")
+vcpkg_fixup_pkgconfig()
+
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    foreach(HEADER IN ITEMS al.h alc.h)
+        vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/AL/${HEADER}" "defined(AL_LIBTYPE_STATIC)" "1")
+    endforeach()
+endif()
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
+
+file(READ "${SOURCE_PATH}/common/pffft.cpp" pffft_license)
+string(REGEX REPLACE "[*]/.*" "*/\n" pffft_license "${pffft_license}")
+file(WRITE "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel/pffft Notice" "${pffft_license}")
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING" "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel/pffft Notice")
