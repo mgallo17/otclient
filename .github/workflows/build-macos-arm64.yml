@@ -11,33 +11,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install dependencies via Homebrew
         run: |
-          brew install cmake ninja luajit
-
-      - name: Setup vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git $HOME/vcpkg
-          $HOME/vcpkg/bootstrap-vcpkg.sh
-          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
-
-      - name: Cache vcpkg
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}/installed
-            ${{ env.VCPKG_ROOT }}/packages
-            ${{ env.VCPKG_ROOT }}/buildtrees
-          key: vcpkg-macos-arm64-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-macos-arm64-
+          brew install cmake ninja luajit boost openssl zlib glew physfs \
+            libogg libvorbis openal-soft curl libpng protobuf nlohmann-json \
+            asio pugixml fmt utf8cpp abseil parallel-hashmap \
+            cpp-httplib stduuid
 
       - name: Build
         run: |
           mkdir -p build && cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
-            -DVCPKG_TARGET_TRIPLET=arm64-osx \
+            -DOPTION_VCPKG_SUBMODULE=OFF \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
             -DLUAJIT_INCLUDE_DIR=$(brew --prefix luajit)/include/luajit-2.1 \
             -DLUAJIT_LIBRARY=$(brew --prefix luajit)/lib/libluajit-5.1.dylib \
             -G Ninja
