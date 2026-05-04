@@ -14,7 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install cmake ninja luajit boost openssl zlib glew physfs \
-            libogg libvorbis openal-soft curl libpng protobuf nlohmann-json
+            libogg libvorbis openal-soft curl libpng protobuf nlohmann-json asio
 
       - name: Build
         run: |
@@ -27,6 +27,7 @@ jobs:
             -DOPENAL_INCLUDE_DIR=$(brew --prefix openal-soft)/include \
             -DOPENAL_LIBRARY=$(brew --prefix openal-soft)/lib/libopenal.dylib \
             -DBOOST_ROOT=$(brew --prefix boost) \
+            -DASIO_INCLUDE_DIR=$(brew --prefix asio)/include \
             -G Ninja
           ninja -j$(sysctl -n hw.logicalcpu)
 
