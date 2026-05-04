@@ -14,6 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          brew install ninja pkg-config autoconf automake libtool mono openal-soft
+
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -26,16 +30,12 @@ jobs:
           vcpkg_commit_id="$(grep 'builtin-baseline' vcpkg.json | awk -F'"' '{print $4}')"
           echo "VCPKG_GIT_COMMIT_ID=${vcpkg_commit_id}" >> $GITHUB_ENV
 
-      - name: Install system dependencies
-        run: |
-          brew install ninja pkg-config autoconf automake libtool mono
-
       - name: CCache
         uses: hendrikmuhs/ccache-action@v1.2.23
         with:
           max-size: "1G"
-          key: ccache-macos-release
-          restore-keys: ccache-macos
+          key: ccache-macos-arm64-release
+          restore-keys: ccache-macos-arm64
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -48,7 +48,7 @@ jobs:
         with:
           configurePreset: macos-release
           buildPreset: macos-release
-          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF']"
+          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF', '-DVCPKG_OVERLAY_PORTS=ports']"
 
       - name: Package
         run: |
