@@ -5,7 +5,7 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git cmake curl zip unzip tar automake ca-certificates build-essential \
     libncurses5-dev libssl-dev python3 python3-pip ninja-build nasm gperf \
-    pkg-config libtool bison flex \
+    pkg-config libtool bison flex openjdk-17-jdk-headless \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install vcpkg with FULL history
@@ -20,6 +20,15 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 
 # Install NDK and stable CMake via sdkmanager
 RUN yes | sdkmanager --sdk_root=$ANDROID_HOME "ndk;29.0.13599879" "cmake;3.22.1"
+
+# Generate a debug keystore so validateSigningRelease doesn't fail in CI
+RUN mkdir -p /root/.android && \
+    keytool -genkeypair -v \
+      -keystore /root/.android/debug.keystore \
+      -alias androiddebugkey \
+      -keyalg RSA -keysize 2048 -validity 10000 \
+      -storepass android -keypass android \
+      -dname "CN=Android Debug,O=Android,C=US"
 
 # Set workdir for the project
 WORKDIR /otclient
@@ -40,10 +49,11 @@ RUN mkdir -p /otclient/android/app/src/main/assets \
     && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua
 
 # Build APK inside the image
+# NDK 29 removed LLVMgold.so — force lld linker to avoid ld.gold errors
 RUN cd /otclient/android \
     && tr -d '\r' < gradlew > gradlew_unix \
     && chmod +x gradlew_unix \
-    && ./gradlew_unix assembleRelease
+    && LDFLAGS="-fuse-ld=lld" ./gradlew_unix assembleRelease
 
 # Minimal stage to extract APK
 FROM scratch AS apk-artifacts
