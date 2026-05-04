@@ -1,0 +1,57 @@
+name: Build Windows x64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build OTClient Windows x64
+    runs-on: windows-2025
+    env:
+      SCCACHE_DIR: ${{ github.workspace }}\.sccache
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get vcpkg baseline
+        shell: pwsh
+        run: |
+          $json = Get-Content vcpkg.json -Raw | ConvertFrom-Json
+          "VCPKG_GIT_COMMIT_ID=$($json.'builtin-baseline')" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Remove pre-installed MySQL (conflicts with vcpkg)
+        shell: pwsh
+        run: Remove-Item -Recurse -Force C:\mysql* -ErrorAction SilentlyContinue
+
+      - name: Prepare sccache directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path $env:SCCACHE_DIR | Out-Null
+
+      - name: Setup sccache
+        uses: hendrikmuhs/ccache-action@v1.2.23
+        with:
+          max-size: "1G"
+          variant: "sccache"
+          key: ccache-windows-release
+          restore-keys: ccache-windows
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitURL: "https://github.com/microsoft/vcpkg.git"
+          vcpkgGitCommitId: ${{ env.VCPKG_GIT_COMMIT_ID }}
+
+      - name: Build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: windows-release
+          buildPreset: windows-release
+          configurePresetAdditionalArgs: "['-DTOGGLE_BIN_FOLDER=ON', '-DOPTIONS_ENABLE_IPO=OFF', '-DOTCLIENT_BUILD_TESTS=OFF']"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: otclient-windows-x64
+          path: build/windows-release/bin/
+          retention-days: 30
