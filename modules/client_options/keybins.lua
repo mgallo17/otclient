@@ -93,18 +93,13 @@ function okPresetWindow()
 
     if presetWindow.action == 'add' then
         Keybind.newPreset(presetName)
-        if modules.game_actionbar and modules.game_actionbar.createHotkeySet then
-            modules.game_actionbar.createHotkeySet(presetName, nil)
-        end
         panels.keybindsPanel.presets.list:addOption(presetName)
         panels.keybindsPanel.presets.list:setCurrentOption(presetName)
     elseif presetWindow.action == 'copy' then
         if not Keybind.copyPreset(selectedPreset, presetName) then
             return
         end
-        if modules.game_actionbar and modules.game_actionbar.createHotkeySet then
-            modules.game_actionbar.createHotkeySet(presetName, selectedPreset)
-        end
+
         panels.keybindsPanel.presets.list:addOption(presetName)
         panels.keybindsPanel.presets.list:setCurrentOption(presetName)
     elseif presetWindow.action == 'rename' then
@@ -114,19 +109,10 @@ function okPresetWindow()
                 changedOptions['currentPreset'].value = presetName
             end
             Keybind.renamePreset(selectedPreset, presetName)
-            if modules.game_actionbar and modules.game_actionbar.renameHotkeySet then
-                modules.game_actionbar.renameHotkeySet(selectedPreset, presetName)
-            end
         end
     elseif presetWindow.action == 'remove' then
         if Keybind.removePreset(selectedPreset) then
             panels.keybindsPanel.presets.list:removeOption(selectedPreset)
-            if modules.game_actionbar and modules.game_actionbar.removeHotkeySet then
-                modules.game_actionbar.removeHotkeySet(selectedPreset)
-                if modules.game_actionbar.selectHotkeySet then
-                    modules.game_actionbar.selectHotkeySet(Keybind.currentPreset)
-                end
-            end
         end
     end
 end
@@ -759,9 +745,6 @@ end
 function listKeybindsComboBox(value)
     local widget = panels.keybindsPanel.presets.list
     presetOption(widget, 'currentPreset', value, false)
-    if modules.game_actionbar and modules.game_actionbar.selectHotkeySet then
-        modules.game_actionbar.selectHotkeySet(value)
-    end
     changedKeybinds = {}
     changedHotkeys = {}
     applyChangedOptions()

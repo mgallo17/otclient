@@ -12,13 +12,9 @@ function UISplitter:onHoverChange(hovered)
     -- Check if margin can be changed
     local margin = (self.vertical and self:getMarginBottom() or self:getMarginRight())
     if hovered and (self:canUpdateMargin(margin + 1) ~= margin or self:canUpdateMargin(margin - 1) ~= margin) then
-        local nativeCursor = modules.client_options and modules.client_options.getOption('nativeCursor')
-        
-        -- Check isCursorChanged only when NOT using native cursor
-        if not nativeCursor and (g_mouse.isCursorChanged() or g_mouse.isPressed()) then
+        if g_mouse.isCursorChanged() or g_mouse.isPressed() then
             return
         end
-        
         if self:getWidth() > self:getHeight() then
             self.vertical = true
             self.cursortype = 'vertical'
@@ -27,21 +23,10 @@ function UISplitter:onHoverChange(hovered)
             self.cursortype = 'horizontal'
         end
         self.hovering = true
-        
-        -- Use native cursor when enabled, otherwise use custom cursor
-        if nativeCursor then
-            g_window.setSystemCursor(self.cursortype)
-        else
-            g_mouse.pushCursor(self.cursortype)
-        end
+        g_mouse.pushCursor(self.cursortype)
     else
         if not self:isPressed() and self.hovering then
-            -- Restore cursor when hovering ends
-            if modules.client_options and modules.client_options.getOption('nativeCursor') then
-                g_window.restoreMouseCursor()
-            else
-                g_mouse.popCursor(self.cursortype)
-            end
+            g_mouse.popCursor(self.cursortype)
             self.hovering = false
         end
     end
@@ -81,12 +66,7 @@ end
 
 function UISplitter:onMouseRelease(mousePos, mouseButton)
     if not self:isHovered() then
-        -- Restore cursor when mouse is released outside the splitter
-        if modules.client_options and modules.client_options.getOption('nativeCursor') then
-            g_window.restoreMouseCursor()
-        else
-            g_mouse.popCursor(self.cursortype)
-        end
+        g_mouse.popCursor(self.cursortype)
         self.hovering = false
     end
 end

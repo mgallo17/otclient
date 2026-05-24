@@ -1,13 +1,12 @@
 CaveBot.Extensions.PosCheck = {}
 
 local posCheckRetries = 0
-local lastPosCheckValue = nil
 CaveBot.Extensions.PosCheck.setup = function()
   CaveBot.registerAction("PosCheck", "#00FFFF", function(value, retries)
     local tilePos
     local data = string.split(value, ",")
-    if #data ~= 5 and #data ~= 6 then
-     warn("wrong poscheck format, should be: label, distance, x, y, z[, maxRetries]")
+    if #data ~= 5 then
+     warn("wrong travel format, should be: label, distance, x, y, z")
      return false
     end
 
@@ -17,30 +16,7 @@ CaveBot.Extensions.PosCheck.setup = function()
     tilePos.y = tonumber(data[4])
     tilePos.z = tonumber(data[5])
 
-    local maxRetries = 10
-    if #data == 6 then
-      local maxRetriesArg = data[6]:trim():lower()
-      if maxRetriesArg:len() > 0 then
-        if maxRetriesArg == "inf" or maxRetriesArg == "infinity" then
-          maxRetries = 0
-        else
-          local parsed = tonumber(maxRetriesArg)
-          if not parsed or parsed ~= parsed or parsed == math.huge
-              or parsed <= 0 or parsed ~= math.floor(parsed) then
-            warn("wrong poscheck format, maxRetries must be a positive integer or 'inf', is: " .. maxRetriesArg)
-            return false
-          end
-          maxRetries = parsed
-        end
-      end
-    end
-
-    if lastPosCheckValue ~= value then
-        lastPosCheckValue = value
-        posCheckRetries = 0
-    end
-
-    if maxRetries > 0 and posCheckRetries >= maxRetries then
+    if posCheckRetries > 10 then
         posCheckRetries = 0
         print("CaveBot[CheckPos]: waypoints locked, too many tries, unclogging cavebot and proceeding")
         return false
@@ -63,9 +39,9 @@ CaveBot.Extensions.PosCheck.setup = function()
   end)
 
   CaveBot.Editor.registerAction("poscheck", "pos check", {
-    value=function() return "last" .. "," .. "10" .. "," .. posx() .. "," .. posy() .. "," .. posz() .. "," .. "10" end,
+    value=function() return "last" .. "," .. "10" .. "," .. posx() .. "," .. posy() .. "," .. posz() end,
     title="Location Check",
-    description="label name, accepted dist from coordinates, x, y, z, maxRetries (positive integer, 'inf' for infinite)",
+    description="label name, accepted dist from coordinates, x, y, z",
     multiline=false,
 })
 end

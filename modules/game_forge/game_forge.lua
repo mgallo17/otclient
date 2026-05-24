@@ -2,7 +2,6 @@ ForgeController = Controller:new()
 ForgeButton = nil
 
 local cloneValue = Helpers.cloneValue
-local replaceTableContents = Helpers.replaceTableContents
 local normalizeClassPriceEntries = Helpers.normalizeClassPriceEntries
 local normalizeTierPriceEntries = Helpers.normalizeTierPriceEntries
 -- Don't cache formatHistoryDate as a local since it may be updated
@@ -64,7 +63,7 @@ local function resetInfo()
     ForgeController.transfer.isConvergence = false
     ForgeController.transfer.title = "Transfer Requirements"
     ForgeController.transfer.dustLabel = ForgeController.transfer.dust
-    replaceTableContents(ForgeController.transfer.currentList, ForgeController.transfer.items)
+    ForgeController.transfer.currentList = cloneValue(ForgeController.transfer.items)
     ForgeController.fusion.title = "Further Items Needed For Fusion"
     ForgeController.fusion.selected = cloneValue(ForgeController.baseSelected)
     ForgeController.fusion.selectedTarget = cloneValue(ForgeController.baseSelected)
@@ -74,7 +73,7 @@ local function resetInfo()
     ForgeController.fusion.chanceImprovedChecked = false
     ForgeController.fusion.reduceTierLossChecked = false
     ForgeController.fusion.dustLabel = ForgeController.fusion.dust
-    replaceTableContents(ForgeController.fusion.currentList, ForgeController.fusion.items)
+    ForgeController.fusion.currentList = cloneValue(ForgeController.fusion.items)
     ForgeController.showResult = false
     ForgeController.showBonus = false
     ForgeController.result = cloneValue(Helpers.baseResult)
@@ -260,11 +259,6 @@ function ForgeController:getPrice(prices, itemId, currentTier, isConvergence, is
             end
         end
     end
-
-    -- Guard against negative prices from server data (e.g. uint64 overflow in pushInteger).
-    -- A zero price will block forgeAction() via the rawPrice <= 0 check, which is intentional:
-    -- the client should not allow forging when the server sends invalid pricing.
-    if price < 0 then price = 0 end
 
     self.rawPrice = price
     self.formattedPrice = comma_value(price)
@@ -795,30 +789,29 @@ function ForgeController:toggleConvergence(isTransfer)
     ForgeController.formattedPrice = "???"
     ForgeController.rawPrice = 0
 
-    local source = data.isConvergence and data.convergenceItems or data.items
-
     if isTransfer then
         data.canTransfer = false
         if not data.isConvergence then
+            data.currentList = cloneValue(data.items)
             data.title = "Transfer Requirements"
             data.dustLabel = data.dust
         else
+            data.currentList = cloneValue(data.convergenceItems)
             data.title = "Convergence Transfer Requirements"
             data.dustLabel = data.convergenceDust
         end
     else
         data.canFusion = false
         if not data.isConvergence then
+            data.currentList = cloneValue(data.items)
             data.title = "Further Items Needed For Fusion"
             data.dustLabel = data.dust
         else
             data.dustLabel = data.convergenceDust
+            data.currentList = cloneValue(data.convergenceItems)
             data.title = "Further Items Needed For Convergence Fusion"
         end
     end
-
-    -- Replace contents in-place to preserve the table reference for reactive UI
-    replaceTableContents(data.currentList, source)
 end
 
 -- TRANSFER MENU
@@ -897,7 +890,7 @@ function onOpenForge(data)
     local items = cloneValue(data.fusionItems or {})
     local fusionItems = handleFusionItems(items)
     ForgeController.fusion.items = fusionItems
-    replaceTableContents(ForgeController.fusion.currentList, fusionItems)
+    ForgeController.fusion.currentList = cloneValue(fusionItems)
     local convergenceFusion = cloneValue(data.convergenceFusion or {})
     local _, convergenceItemsBySlot = handleParseConvergenceFusionItems(convergenceFusion)
     ForgeController.fusion.convergenceItems = convergenceItemsBySlot
@@ -907,7 +900,7 @@ function onOpenForge(data)
     local transfers = cloneValue(data.transfers or {})
     local transferItems = handleTransferItems(transfers)
     ForgeController.transfer.items = transferItems
-    replaceTableContents(ForgeController.transfer.currentList, transferItems)
+    ForgeController.transfer.currentList = cloneValue(transferItems)
 
     local convergenceTransfers = cloneValue(data.convergenceTransfers or {})
     local convergenceTransferItems = handleTransferItems(convergenceTransfers)

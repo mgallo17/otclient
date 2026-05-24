@@ -119,7 +119,7 @@ local function setupComboBox()
     local mouseControlModeCombobox = panels.generalPanel:recursiveGetChildById('mouseControlMode')
     local lootControlModeCombobox = panels.generalPanel:recursiveGetChildById('lootControlMode')
 
-    for k, v in pairs({ { 'Disabled', 'disabled' }, { 'Default', 'default' }, { 'Full', 'full' }, { 'Animation', 'animation' } }) do
+    for k, v in pairs({ { 'Disabled', 'disabled' }, { 'Default', 'default' }, { 'Full', 'full' } }) do
         crosshairCombo:addOption(v[1], v[2])
     end
 
@@ -264,16 +264,6 @@ local function setup()
             end
         end
     end, 100)
-
-    local talkOnRightClick = panels.generalPanel:recursiveGetChildById('talkOnRightClick')
-    if talkOnRightClick then
-        local parent = talkOnRightClick:getParent()
-       if g_game.getClientVersion() > 1511 then
-            parent:setVisible(false)
-            parent:setHeight(0)
-            parent:setMarginTop(0)
-        end
-    end
 end
 
 
@@ -352,6 +342,17 @@ function controller:onInit()
             callback = function() toggleOption('fullscreen') end,
         }
     })
+    Keybind.new("UI", "Maximize Window", "Ctrl+Shift+M", "")
+    Keybind.bind("UI", "Maximize Window", {
+        {
+            type = KEY_DOWN,
+            callback = function()
+                local displaySize = g_window.getDisplaySize()
+                g_window.resize(displaySize)
+                g_window.move({x = 0, y = 0})
+            end,
+        }
+    })
     Keybind.new("UI", "Show/hide FPS / lag indicator", "", "")
     Keybind.bind("UI", "Show/hide FPS / lag indicator", { {
         type = KEY_DOWN,
@@ -391,6 +392,7 @@ function controller:onTerminate()
     extraWidgets = {}
     buttons = {}
     Keybind.delete("UI", "Toggle Fullscreen")
+    Keybind.delete("UI", "Maximize Window")
     Keybind.delete("UI", "Show/hide Creature Names and Bars")
     Keybind.delete("UI", "Show/hide FPS / lag indicator")
     Keybind.delete("Sound", "Mute/unmute")
@@ -404,11 +406,6 @@ function controller:onGameStart()
         if Keybind.selectPreset(name) then
             panels.keybindsPanel.presets.list:setCurrentOption(name, true)
             updateKeybinds()
-            if modules.game_actionbar and modules.game_actionbar.selectHotkeySet then
-                if not modules.game_actionbar.selectHotkeySet(name) then
-                    g_logger.warning(string.format("[client_options] Failed to sync action bar hotkey set '%s' on startup.", name))
-                end
-            end
         end
     end
 end
@@ -450,6 +447,7 @@ function setOption(key, value, force)
 
     option.value = value
     g_settings.set(key, value)
+    g_settings.save()
 end
 
 function setupOptionsMainButton()

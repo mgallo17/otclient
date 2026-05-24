@@ -276,16 +276,11 @@ function assignItem(button, itemId, itemTier, dragEvent)
     if not isLoaded then
         return true
     end
-    if not button.item then
-        local parent = button:getParent()
-        local id = button:getId()
-        updateButton(button)
-        button = parent:getChildById(id)
-        if not button or not button.item then
-            return
-        end
-    end
     local item = button.item:getItem()
+    if not button.item then
+        updateButton(button)
+        return
+    end
     local actionbar = button:getParent():getParent()
     if dragEvent and actionbar.locked or actionbar.locked then
         updateButton(button)
@@ -311,7 +306,6 @@ function assignItem(button, itemId, itemTier, dragEvent)
     local selectButton = ui:querySelector("button[text='Select Object']")
     local checkbox1 = ui:querySelector("#UseOnYourself")
     local checkbox2 = ui:querySelector("#UseOnTarget")
-    local checkbox3 = ui:querySelector("#UseAtCursorPosition")
     local checkbox4 = ui:querySelector("#SelectUseTarget")
     local checkbox5 = ui:querySelector("#Equip")
     local checkbox6 = ui:querySelector("#Use")
@@ -342,9 +336,6 @@ function assignItem(button, itemId, itemTier, dragEvent)
         widget = checkbox2,
         useType = "UseOnTarget"
     }, {
-        widget = checkbox3,
-        useType = "UseAtCursorPosition"
-    }, {
         widget = checkbox4,
         useType = "SelectUseTarget"
     }, {
@@ -363,12 +354,11 @@ function assignItem(button, itemId, itemTier, dragEvent)
         end
     end
 
-    -- UseTypes: UseOnYourself=1, UseOnTarget=2, SelectUseTarget=3, UseAtCursorPosition=9
+    -- UseTypes: UseOnYourself=1, UseOnTarget=2, SelectUseTarget=3
     if item:isMultiUse() then
         for _, cbData in ipairs(checkboxWidgets) do
             local useTypeIndex = UseTypes[cbData.useType]
-            if (useTypeIndex <= UseTypes["SelectUseTarget"] or useTypeIndex == UseTypes["UseAtCursorPosition"]) and
-                cbData.widget then
+            if useTypeIndex <= UseTypes["SelectUseTarget"] and cbData.widget then
                 cbData.widget:setEnabled(true)
 
                 if not selectedCheckbox and
@@ -552,34 +542,6 @@ function assignPassive(button)
     end
 end
 
-function assignSpecialAction(button, mousePos)
-    local actionbar = button:getParent():getParent()
-    if actionbar.locked then
-        alert('Action bar is locked')
-        return
-    end
-
-    local menu = g_ui.createWidget('PopupMenu')
-    menu:setGameMenu(true)
-
-    for _, specialAction in ipairs(ActionBarSpecialActions) do
-        menu:addOption(specialAction.text, function()
-            local barID, buttonID = string.match(button:getId(), "(.*)%.(.*)")
-            ApiJson.createOrUpdateSpecialAction(tonumber(barID), tonumber(buttonID), specialAction.id)
-            updateButton(button)
-        end)
-    end
-
-    if button.cache and button.cache.specialAction then
-        menu:addSeparator()
-        menu:addOption(tr("Clear Assigned Action"), function()
-            clearButton(button, true)
-        end)
-    end
-
-    menu:display(mousePos)
-end
-
 -- /*=============================================
 -- =            item Event external          =
 -- =============================================*/
@@ -587,23 +549,13 @@ function onDropActionButton(self, mousePosition, mouseButton)
     if not g_ui.isMouseGrabbed() then
         return
     end
-    -- Restore cursor
-    if modules.client_options and modules.client_options.getOption('nativeCursor') then
-        g_window.restoreMouseCursor()
-    else
-        g_mouse.popCursor('target')
-    end
+    g_mouse.popCursor('target')
     self:ungrabMouse()
 end
 
 function assignItemEvent(button)
     mouseGrabberWidget:grabMouse()
-    -- Use native cursor when enabled, otherwise use custom cursor
-    if modules.client_options and modules.client_options.getOption('nativeCursor') then
-        g_window.setSystemCursor('cross')
-    else
-        g_mouse.pushCursor('target')
-    end
+    g_mouse.pushCursor('target')
     mouseGrabberWidget.onMouseRelease = function(self, mousePosition, mouseButton)
         onAssignItem(self, mousePosition, mouseButton, button)
     end
@@ -611,12 +563,7 @@ end
 
 function onAssignItem(self, mousePosition, mouseButton, button)
     mouseGrabberWidget:ungrabMouse()
-    -- Restore cursor
-    if modules.client_options and modules.client_options.getOption('nativeCursor') then
-        g_window.restoreMouseCursor()
-    else
-        g_mouse.popCursor('target')
-    end
+    g_mouse.popCursor('target')
     mouseGrabberWidget.onMouseRelease = onDropActionButton
 
     local clickedWidget = gameRootPanel:recursiveGetChildByPos(mousePosition, false)

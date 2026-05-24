@@ -358,7 +358,7 @@ function UIMiniWindow:getSettings(name)
     end
 
     local settings = g_settings.getNode('CharMiniWindows')
-    if settings then
+    if settings and settings[char] then
         local selfSettings = settings[char][self:getId()]
         if selfSettings then
             return selfSettings[name]

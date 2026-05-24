@@ -1,4 +1,3 @@
-consoleController = Controller:new()
 SpeakTypesSettings = {
     none = {},
     say = {
@@ -178,8 +177,8 @@ local communicationSettings = {
     whitelistedPlayers = {}
 }
 
-function consoleController:onInit()
-    self:registerEvents(g_game, {
+function init()
+    connect(g_game, {
         onTalk = onTalk,
         onChannelList = onChannelList,
         onOpenChannel = onOpenChannel,
@@ -190,7 +189,8 @@ function consoleController:onInit()
         onRuleViolationRemove = onRuleViolationRemove,
         onRuleViolationCancel = onRuleViolationCancel,
         onRuleViolationLock = onRuleViolationLock,
-        onReceiveExivaOptions = onReceiveExivaOptions,
+        onGameStart = online,
+        onGameEnd = offline,
         onChannelEvent = onChannelEvent
     })
     gameBottomPanel = modules.game_interface.getBottomPanel()
@@ -200,14 +200,6 @@ function consoleController:onInit()
     consoleTabBar = consolePanel:getChildById('consoleTabBar')
     consoleTabBar:setContentWidget(consoleContentPanel)
     channels = {}
-    defaultTab = addTab(tr('Local Chat'), true)
-    serverTab = addTab(tr('Server Log'), false)
-
-    local clientVersion = g_game.getClientVersion()
-    if clientVersion >= 820 then
-        local tab = addTab('NPCs', false)
-        tab.npcChat = true
-    end
 
     readOnlyPanel = consolePanel:getChildById('readOnlyPanel')
     readOnlyPanel:hide()
@@ -319,6 +311,10 @@ function consoleController:onInit()
         activateReadOnlyMode(draggedWidget:getText())
     end)
     load()
+
+    if g_game.isOnline() then
+        online()
+    end
 end
 
 function clearSelection(consoleBuffer)
@@ -451,8 +447,28 @@ function isChatEnabled()
     return consoleTextEdit:isVisible()
 end
 
-function consoleController:onTerminate()
+function terminate()
     save()
+    disconnect(g_game, {
+        onTalk = onTalk,
+        onChannelList = onChannelList,
+        onOpenChannel = onOpenChannel,
+        onOpenPrivateChannel = onOpenPrivateChannel,
+        onOpenOwnPrivateChannel = onOpenPrivateChannel,
+        onCloseChannel = onCloseChannel,
+        onRuleViolationChannel = onRuleViolationChannel,
+        onRuleViolationRemove = onRuleViolationRemove,
+        onRuleViolationCancel = onRuleViolationCancel,
+        onRuleViolationLock = onRuleViolationLock,
+        onGameStart = online,
+        onGameEnd = offline,
+        onChannelEvent = onChannelEvent
+    })
+
+    if g_game.isOnline() then
+        clear()
+    end
+
     Keybind.delete("Chat Channel", "Close Current Channel")
     Keybind.delete("Chat Channel", "Next Channel")
     Keybind.delete("Chat Channel", "Previous Channel")
@@ -464,49 +480,33 @@ function consoleController:onTerminate()
     if readOnlyModeEnabled then
         toggleReadOnlyMode()
     end
-
-    if channelsWindow then
-        channelsWindow:destroy()
-        channelsWindow = nil
-    end
-
-    if communicationWindow then
-        communicationWindow:destroy()
-        communicationWindow = nil
-    end
-
-    if violationWindow then
-        violationWindow:destroy()
-        violationWindow = nil
-    end
-
     if readOnlyButton then
         readOnlyButton:destroy()
         readOnlyButton = nil
     end
-
     if readOnlyPanel then
         readOnlyPanel:destroy()
         readOnlyPanel = nil
     end
-
-    if consolePanel then
-        consolePanel:destroy()
-        consolePanel = nil
+    if channelsWindow then
+        channelsWindow:destroy()
     end
 
-    defaultTab = nil
-    serverTab = nil
-    violationReportTab = nil
-    violationsChannelId = nil
-    ignoredChannels = {}
-    filters = {}
-    channels = {}
+    if communicationWindow then
+        communicationWindow:destroy()
+    end
+
+    if violationWindow then
+        violationWindow:destroy()
+    end
 
     consoleTabBar = nil
     consoleContentPanel = nil
     consoleToggleChat = nil
     consoleTextEdit = nil
+
+    consolePanel:destroy()
+    consolePanel = nil
     ownPrivateName = nil
     gameBottomPanel = nil
     Console = nil
@@ -557,9 +557,7 @@ function onTabChange(tabBar, tab)
         end
     else
         consolePanel:getChildById('closeChannelButton'):enable()
-        if player then
-            player:setTyping(false)
-        end
+        player:setTyping(false)
     end
 
     if tab.isOnRedMessage then
@@ -598,22 +596,24 @@ function clear()
     -- close channels
     for _, channelName in pairs(channels) do
         local tab = consoleTabBar:getTab(channelName)
-        if tab and tab ~= defaultTab and tab ~= serverTab and not tab.npcChat then
-            consoleTabBar:removeTab(tab)
-        end
+        consoleTabBar:removeTab(tab)
     end
     channels = {}
 
-    if defaultTab then
-        defaultTab.tabPanel:getChildById('consoleBuffer'):destroyChildren()
-    end
-    if serverTab then
-        serverTab.tabPanel:getChildById('consoleBuffer'):destroyChildren()
-    end
+    consoleTabBar:removeTab(defaultTab)
+    defaultTab = nil
+    consoleTabBar:removeTab(serverTab)
+    serverTab = nil
 
     local npcTab = consoleTabBar:getTab('NPCs')
     if npcTab then
-        npcTab.tabPanel:getChildById('consoleBuffer'):destroyChildren()
+        consoleTabBar:removeTab(npcTab)
+        npcTab = nil
+    end
+
+    if violationReportTab then
+        consoleTabBar:removeTab(violationReportTab)
+        violationReportTab = nil
     end
 
     consoleTextEdit:clearText()
@@ -797,10 +797,8 @@ function addPrivateText(text, speaktype, name, isPrivateCommand, creatureName)
             privateTab = addTab(name, focus)
             channels[name] = name
         end
-       if privateTab then
-            privateTab.npcChat = speaktype.npcChat
-        end
-    elseif focus and privateTab then
+        privateTab.npcChat = speaktype.npcChat
+    elseif focus then
         consoleTabBar:selectTab(privateTab)
     end
     addTabText(text, speaktype, privateTab, creatureName)
@@ -1098,36 +1096,10 @@ function onConsoleTextClicked(widget, text)
 end
 
 function onConsoleTextHovered(widget, text, hovered)
-    if not modules.client_options then
-        return
-    end
-    
-    local nativeCursor = modules.client_options.getOption('nativeCursor')
-    local animatedCursor = modules.client_options.getOption('showAnimatedCursor')
-    
-    -- Only show cursor in animated mode
-    if animatedCursor and not nativeCursor then
-        if hovered then
-            if not widget.consoleCursorPushed then
-                g_mouse.pushCursor("pointerbutton")
-                widget.consoleCursorPushed = true
-            end
-        else
-            if widget.consoleCursorPushed then
-                g_mouse.popCursor("pointerbutton")
-                widget.consoleCursorPushed = false
-            end
-        end
-    elseif nativeCursor and hovered then
-        if not widget.consoleCursorPushed then
-            g_window.setSystemCursor('hand')
-            widget.consoleCursorPushed = true
-        end
-    elseif nativeCursor and not hovered then
-        if widget.consoleCursorPushed then
-            g_window.restoreMouseCursor()
-            widget.consoleCursorPushed = false
-        end
+    if hovered then
+        g_mouse.pushCursor("pointer")
+    else
+       g_mouse.popCursor("pointer")
     end
 end
 
@@ -1728,9 +1700,9 @@ function onTalk(name, level, mode, message, channelId, creaturePos)
             modules.game_textmessage.displayPrivateMessage(name .. ':\n' .. message)
         end
     else
-        local channel = channels[channelId]
-        if not channel and (defaultMessage or channelId == 0) then
-            channel = tr('Local Chat')
+        local channel = tr('Local Chat')
+        if not defaultMessage then
+            channel = channels[channelId]
         end
 
         if channel then
@@ -2116,11 +2088,15 @@ function onClickIgnoreButton()
     end
 end
 
-function consoleController:onGameStart()
-    consoleTabBar:selectTab(defaultTab)
+function online()
+    defaultTab = addTab(tr('Local Chat'), true)
+    serverTab = addTab(tr('Server Log'), false)
 
-    local clientVersion = g_game.getClientVersion()
-    if clientVersion < 862 then
+    if g_game.getClientVersion() >= 820 then
+        local tab = addTab('NPCs', false)
+        tab.npcChat = true
+    end
+    if g_game.getClientVersion() < 862 then
         Keybind.new("Dialogs", "Open Rule Violation", "Ctrl+R", "")
         local gameRootPanel = modules.game_interface.getRootPanel()
         Keybind.bind("Dialogs", "Open Rule Violation", {
@@ -2130,24 +2106,10 @@ function consoleController:onGameStart()
           }
         }, gameRootPanel)
     end
-    if clientVersion > 1100 then
-        local active = g_game.canExivaOptions()
-        local widget = consolePanel:getChildById('exivaOption')
-        if widget then
-            widget:setTooltip(
-                active
-                    and "Select Characters that can Exiva you"
-                    or "Exiva Options are only available on Optional Pvp game worlds"
-            )
-            widget:setOn(active)
-        end
-    else
-        consolePanel:getChildById('exivaOption'):disable()
-    end
-
+    
     -- Update chat mode when game comes online to ensure proper key binding
     updateChatMode()
-
+    
     -- open last channels
     local lastChannelsOpen = g_settings.getNode('lastChannelsOpen')
     if lastChannelsOpen then
@@ -2169,9 +2131,8 @@ function consoleController:onGameStart()
     end, 3000)
 end
 
-function consoleController:onGameEnd()
+function offline()
     clear()
-    self:closeWindowExiva()
 end
 
 function onChannelEvent(channelId, name, type)

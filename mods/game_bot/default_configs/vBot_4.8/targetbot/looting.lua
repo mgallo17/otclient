@@ -8,18 +8,17 @@ local itemsById = {}
 local containersById = {}
 local dontSave = false
 
-local function updateLootingModeLabel()
-  if not ui or not ui.labelToLoot then return end
-  ui.labelToLoot:setText(ui.everyItem:isOn() and "Items to ignore" or "Items to loot")
-end
-
 TargetBot.Looting.setup = function()
   ui = UI.createWidget("TargetBotLootingPanel")
   UI.Container(TargetBot.Looting.onItemsUpdate, true, nil, ui.items)
   UI.Container(TargetBot.Looting.onContainersUpdate, true, nil, ui.containers)
   ui.everyItem.onClick = function()
     ui.everyItem:setOn(not ui.everyItem:isOn())
-    updateLootingModeLabel()
+    if ui.everyItem:isOn() then
+      ui.labelToLoot:setText("Items to ignore")
+    else
+      ui.labelToLoot:setText("Items to loot")
+    end
     TargetBot.save()
   end
   ui.maxDangerPanel.value.onTextChange = function()
@@ -57,8 +56,7 @@ TargetBot.Looting.update = function(data)
   TargetBot.Looting.list = {}
   ui.items:setItems(data['items'] or {})
   ui.containers:setItems(data['containers'] or {})
-  ui.everyItem:setOn(not not data['everyItem'])
-  updateLootingModeLabel()
+  ui.everyItem:setOn(data['everyItem'])
   ui.maxDangerPanel.value:setText(data['maxDanger'] or 10)
   ui.minCapacityPanel.value:setText(data['minCapacity'] or 100)
   TargetBot.Looting.updateItemsAndContainers()

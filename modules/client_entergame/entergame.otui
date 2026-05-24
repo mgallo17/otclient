@@ -26,8 +26,11 @@ EnterGameWindow
   &authenticatorHeight: 44
   &stayLoggedBoxEnabled: false
   &stayLoggedBoxHeight: 24
+  &disableToken : false
   size: 280 302
   @onEnter: EnterGame.doLogin()
+
+
 
   Label
     id: emailLabel
@@ -105,6 +108,32 @@ EnterGameWindow
             self:hide()
         end
 
+  MenuLabel
+    id: authenticatorTokenLabel
+    !text: tr('Authenticator Token')
+    anchors.left: prev.left
+    anchors.top: prev.bottom
+    text-auto-resize: true
+    margin-top: -12
+    visible: false
+
+    $on:
+      visible: true
+      margin-top: 8
+
+  TextEdit
+    id: authenticatorTokenTextEdit
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: -22
+    visible: false
+    max-length: 8
+
+    $on:
+      visible: true
+      margin-top: 2
+
   QtCheckBox
     id: stayLoggedBox
     !text: tr('Stay logged during session')
@@ -139,7 +168,7 @@ EnterGameWindow
     anchors.right: parent.right
     anchors.top: serverLabel.bottom
     margin-top: 3
-    @onClick: EnterGame.showServerList()
+    @onClick: ServerList.show()
 
   TextEdit
     id: serverHostTextEdit
@@ -247,3 +276,4 @@ EnterGameWindow
     margin-top: 5
     color: green
     text-auto-resize: true
+

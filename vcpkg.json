@@ -40,6 +40,10 @@
       "platform": "windows | linux"
     },
     {
+      "name": "sdl2",
+      "platform": "osx"
+    },
+    {
       "name": "glew",
       "platform": "windows | linux | osx"
     },

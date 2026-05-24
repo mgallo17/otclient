@@ -19,24 +19,15 @@ end
 
 function UIResizeBorder:onDestroy()
     if self.hovering then
-        -- Restore cursor when widget is destroyed while hovering
-        if modules.client_options and modules.client_options.getOption('nativeCursor') then
-            g_window.restoreMouseCursor()
-        else
-            g_mouse.popCursor(self.cursortype)
-        end
+        g_mouse.popCursor(self.cursortype)
     end
 end
 
 function UIResizeBorder:onHoverChange(hovered)
     if hovered then
-        local nativeCursor = modules.client_options and modules.client_options.getOption('nativeCursor')
-        
-        -- Check isCursorChanged only when NOT using native cursor
-        if not nativeCursor and (g_mouse.isCursorChanged() or g_mouse.isPressed()) then
+        if g_mouse.isCursorChanged() or g_mouse.isPressed() then
             return
         end
-        
         if self:getWidth() > self:getHeight() then
             self.vertical = true
             self.cursortype = 'vertical'
@@ -44,26 +35,14 @@ function UIResizeBorder:onHoverChange(hovered)
             self.vertical = false
             self.cursortype = 'horizontal'
         end
-        
-        -- Use native cursor when enabled, otherwise use custom cursor
-        if nativeCursor then
-            g_window.setSystemCursor(self.cursortype)
-        else
-            g_mouse.pushCursor(self.cursortype)
-        end
-        
+        g_mouse.pushCursor(self.cursortype)
         self.hovering = true
         if not self:isPressed() then
             g_effects.fadeIn(self)
         end
     else
         if not self:isPressed() and self.hovering then
-            -- Restore cursor when hovering ends
-            if modules.client_options and modules.client_options.getOption('nativeCursor') then
-                g_window.restoreMouseCursor()
-            else
-                g_mouse.popCursor(self.cursortype)
-            end
+            g_mouse.popCursor(self.cursortype)
             g_effects.fadeOut(self)
             self.hovering = false
         end
@@ -101,12 +80,7 @@ end
 
 function UIResizeBorder:onMouseRelease(mousePos, mouseButton)
     if not self:isHovered() then
-        -- Restore cursor when mouse is released outside the border
-        if modules.client_options and modules.client_options.getOption('nativeCursor') then
-            g_window.restoreMouseCursor()
-        else
-            g_mouse.popCursor(self.cursortype)
-        end
+        g_mouse.popCursor(self.cursortype)
         g_effects.fadeOut(self)
         self.hovering = false
     end

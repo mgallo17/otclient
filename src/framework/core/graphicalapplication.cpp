@@ -62,6 +62,7 @@ void GraphicalApplication::init(std::vector<std::string>& args, ApplicationConte
     g_window.setTitleBarColor(Color::black);
 
     g_window.setOnResize([this](auto&& PH1) {
+        g_graphics.resize(PH1); // update viewport immediately to prevent black screen during resize
         if (!m_running) resize(PH1);
         else g_dispatcher.addEvent([&, PH1] { resize(PH1); });
     });
@@ -144,7 +145,8 @@ void GraphicalApplication::mainLoop() {
     }
 
     const auto FPS = [this] {
-        m_mapProcessFrameCounter.setTargetFps(g_window.vsyncEnabled() || getMaxFps() || getTargetFps() ? 500u : 0u);
+        const auto maxFps = getMaxFps() ? getMaxFps() : (getTargetFps() ? getTargetFps() : 60u);
+        m_mapProcessFrameCounter.setTargetFps(maxFps);
         return m_graphicFrameCounter.getFps();
     };
 
@@ -193,7 +195,8 @@ void GraphicalApplication::run()
 
 #ifndef __EMSCRIPTEN__
     const auto FPS = [this] {
-        m_mapProcessFrameCounter.setTargetFps(g_window.vsyncEnabled() || getMaxFps() || getTargetFps() ? 500u : 0u);
+        const auto maxFps = getMaxFps() ? getMaxFps() : (getTargetFps() ? getTargetFps() : 60u);
+        m_mapProcessFrameCounter.setTargetFps(maxFps);
         return m_graphicFrameCounter.getFps();
     };
 #endif

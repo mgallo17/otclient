@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-#if !defined WIN32 && !defined ANDROID && !defined __EMSCRIPTEN__
+#if !defined WIN32 && !defined ANDROID && !defined __EMSCRIPTEN__ && !defined __APPLE__
 
 #include "x11window.h"
 #include <framework/core/resourcemanager.h>
@@ -28,6 +28,22 @@
 #include <framework/util/stats.h>
 #include <framework/graphics/image.h>
 #include <unistd.h>
+
+#ifdef __APPLE__
+// Custom X11 error handler to ignore MIT-SHM errors on macOS/XQuartz
+static int x11ErrorHandler(Display* display, XErrorEvent* event)
+{
+    // Ignore MIT-SHM (BadShmSeg) errors — XQuartz doesn't support SHM properly
+    if (event->error_code == BadAccess || event->minor_code == 3 /* X_ShmPutImage */) {
+        return 0;
+    }
+    // For other errors, print but don't exit
+    char buf[256];
+    XGetErrorText(display, event->error_code, buf, sizeof(buf));
+    fprintf(stderr, "X11 Warning: %s (opcode %d.%d)\n", buf, event->request_code, event->minor_code);
+    return 0;
+}
+#endif
 
 #define LSB_BIT_SET(p, n) (p[(n)/8] |= (1 <<((n)%8)))
 
@@ -281,6 +297,9 @@ void X11Window::internalOpenDisplay()
     if (!m_display)
         g_logger.fatal("Unable to open X11 display");
     m_screen = DefaultScreen(m_display);
+#ifdef __APPLE__
+    XSetErrorHandler(x11ErrorHandler);
+#endif
 }
 
 void X11Window::internalCreateWindow()

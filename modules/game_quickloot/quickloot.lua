@@ -334,12 +334,7 @@ function QuickLoot.Define()
         end
 
         QuickLoot.mouseGrabberWidget:grabMouse()
-        -- Use native cursor when enabled, otherwise use custom cursor
-        if modules.client_options and modules.client_options.getOption('nativeCursor') then
-            g_window.setSystemCursor('cross')
-        else
-            g_mouse.pushCursor("target")
-        end
+        g_mouse.pushCursor("target")
 
         QuickLoot.lastSelectBag = self:getParent()
         QuickLoot.actionsId = self.Select
@@ -402,12 +397,7 @@ function QuickLoot.Define()
             quickLootController.ui:show()
         end
 
-        -- Restore cursor
-        if modules.client_options and modules.client_options.getOption('nativeCursor') then
-            g_window.restoreMouseCursor()
-        else
-            g_mouse.popCursor("target")
-        end
+        g_mouse.popCursor("target")
         self:ungrabMouse()
 
         return true

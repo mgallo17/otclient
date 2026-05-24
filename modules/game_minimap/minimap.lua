@@ -5,6 +5,7 @@ local otmm = true
 local oldPos = nil
 local fullscreenWidget
 local virtualFloor = 7
+local minimapImported = false
 local currentDayTime = {
     h = 12,
     m = 0
@@ -127,7 +128,33 @@ function mapController:onGameStart()
     end
 
     if g_resources.fileExists(minimapFile) then
-        loadFnc(minimapFile)
+        local ok, err = pcall(loadFnc, minimapFile)
+        if not ok then
+            g_logger.warning('Failed to load minimap: ' .. tostring(err))
+        end
+    elseif not minimapImported then
+        -- Import minimap images from tibiamaps.io if available (only once per session)
+        local importDir = '/data/minimap_import'
+        if g_resources.directoryExists(importDir) then
+            local files = g_resources.listDirectoryFiles(importDir)
+            local count = 0
+            for _, file in ipairs(files) do
+                local x, y, z = file:match('Minimap_Color_(%d+)_(%d+)_(%d+)%.png')
+                if x then
+                    local pos = { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
+                    g_minimap.loadImage(importDir .. '/' .. file, pos, 1.0)
+                    count = count + 1
+                end
+            end
+            if count > 0 then
+                g_logger.info('Imported ' .. count .. ' minimap tiles from tibiamaps.io')
+                if otmm then
+                    g_minimap.saveOtmm('/minimap.otmm')
+                    g_logger.info('Saved minimap as /minimap.otmm')
+                end
+            end
+            minimapImported = true
+        end
     end
 
     self.ui.minimapBorder.minimap:load()
