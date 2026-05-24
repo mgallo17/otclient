@@ -155,7 +155,6 @@ return {
     returnDisablesChat                = false,
     smartWalk                         = false,
     autoChaseOverride                 = true,
-    talkOnRightClick                  = false,
     moveStack                         = false,
     showStatusMessagesInConsole       = true,
     showEventMessagesInConsole        = true,
@@ -185,7 +184,7 @@ return {
     },
     openMaximized                     = false,
     backgroundFrameRate               = {
-        value = 501,
+        value = 60,
         action = function(value, options, controller, panels, extraWidgets)
             local text, v = value, value
             if value <= 0 or value >= 501 then
@@ -329,7 +328,7 @@ return {
         end
     },
     crosshair                         = {
-        value = 'default',
+        value = 'disabled',
         action = function(value, options, controller, panels, extraWidgets)
             local crossPath = '/images/game/crosshair/'
             local newValue = value
@@ -341,56 +340,10 @@ return {
             panels.interface:recursiveGetChildById('crosshair'):setCurrentOptionByData(newValue, true)
         end
     },
-    nativeCursor = {
+    enableHighlightMouseTarget        = {
         value = false,
         action = function(value, options, controller, panels, extraWidgets)
-            if value then
-                -- Disable animated cursor when native cursor is enabled
-                if options.showAnimatedCursor.value then
-                    options.showAnimatedCursor.value = false
-                    g_settings.set('showAnimatedCursor', false)
-                    panels.gameMapPanel:setCursorAnimations(false)
-                    -- Update the UI checkbox
-                    local widget = panels.interface:recursiveGetChildById('showAnimatedCursor')
-                    if widget then
-                        widget:setChecked(false)
-                    end
-                end
-                -- Set native cursor mode flag
-                g_mouse.setUseNativeCursor(true)
-                -- Push cursor to mark as changed (prevents game from overriding)
-                g_mouse.pushCursor('window')
-                -- Then restore to native Windows cursor
-                g_window.restoreMouseCursor()
-            else
-                g_mouse.setUseNativeCursor(false)
-                g_mouse.popCursor('window')
-            end
-        end
-    },
-    enableHighlightMouseTarget        = {
-        value = true,
-        action = function(value, options, controller, panels, extraWidgets)
             panels.gameMapPanel:setDrawHighlightTarget(value)
-        end
-    },
-    showAnimatedCursor = {
-        value = true,
-        action = function(value, options, controller, panels, extraWidgets)
-            if value then
-                -- Disable native cursor when animated cursor is enabled
-                if options.nativeCursor.value then
-                    options.nativeCursor.value = false
-                    g_settings.set('nativeCursor', false)
-                    g_mouse.popCursor('window')
-                    -- Update the UI checkbox
-                    local widget = panels.interface:recursiveGetChildById('nativeCursor')
-                    if widget then
-                        widget:setChecked(false)
-                    end
-                end
-            end
-            panels.gameMapPanel:setCursorAnimations(value)
         end
     },
     showDragIcon        = {

@@ -175,8 +175,9 @@ if(APPLE)
   # Required for Physfs
   find_library(FOUNDATION Foundation REQUIRED)
   find_library(IOKIT IOKit REQUIRED)
+  find_package(SDL2 CONFIG REQUIRED)
 endif()
-if(UNIX AND NOT ANDROID AND NOT WASM)
+if(UNIX AND NOT APPLE AND NOT ANDROID AND NOT WASM)
   find_package(X11 REQUIRED)
 endif()
 if(WIN32)
@@ -431,7 +432,8 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/graphics/texturemanager.cpp
           framework/graphics/shadermanager.cpp
           framework/platform/win32window.cpp
-          framework/platform/x11window.cpp
+           framework/platform/x11window.cpp
+           framework/platform/sdl2window.cpp
           framework/ui/uianchorlayout.cpp
           framework/ui/uiboxlayout.cpp
           framework/ui/uigridlayout.cpp
@@ -916,7 +918,7 @@ else() # Linux
 
           absl::log_internal_check_op
           Threads::Threads
-          X11::X11
+          $<$<NOT:$<PLATFORM_ID:Darwin>>:X11::X11>
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
@@ -938,6 +940,10 @@ else() # Linux
           PUBLIC
           protobuf::libprotobuf protobuf
       )
+  endif()
+
+  if(APPLE)
+    target_link_libraries(otclient_core PUBLIC SDL2::SDL2)
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")

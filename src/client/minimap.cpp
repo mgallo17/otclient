@@ -291,7 +291,8 @@ bool Minimap::loadImage(const std::string& fileName, const Position& topLeft, fl
                 MinimapTile& tile = block.getTile(pos.x - offsetPos.x, pos.y - offsetPos.y);
                 if (!(tile.flags & MinimapTileWasSeen)) {
                     tile.color = c;
-                    tile.flags = flags;
+                    tile.flags = flags | MinimapTileWasSeen;
+                    block.justSaw();
                     block.mustUpdate();
                 }
             }

@@ -26,6 +26,9 @@ controller:registerEvents(g_game, {
             g_game.enableFeature(GameLooktypeU16)
             g_game.enableFeature(GameMessageStatements)
             g_game.enableFeature(GameLoginPacketEncryption)
+            g_game.enableFeature(GameClientPing)
+            g_game.enableFeature(GameTileAddThingWithStackpos)
+            g_game.enableFeature(GameWritableDate)
         end
 
         if version >= 780 then
@@ -87,7 +90,6 @@ controller:registerEvents(g_game, {
 
         if version >= 953 then
             g_game.enableFeature(GamePurseSlot)
-            g_game.enableFeature(GameClientPing)
         end
 
         if version >= 960 then
@@ -266,7 +268,6 @@ controller:registerEvents(g_game, {
             g_game.disableFeature(GameForgeSkillStats)
             g_game.enableFeature(GameCharacterSkillStats)
         end
-
         if version >= 1500 then
             g_game.enableFeature(GameVocationMonk)
         end

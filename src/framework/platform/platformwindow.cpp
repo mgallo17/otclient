@@ -34,6 +34,9 @@ AndroidWindow window;
 #elif defined __EMSCRIPTEN__
 #include "browserwindow.h"
 BrowserWindow window;
+#elif defined __APPLE__
+#include "sdl2window.h"
+SDL2Window window;
 #else
 #include "x11window.h"
 #include <framework/core/clock.h>
@@ -91,6 +94,9 @@ void PlatformWindow::processKeyDown(Fw::Key keyCode)
         return;
 #if defined(__APPLE__)
     } else if (keyCode == Fw::KeyMeta) {
+        m_inputEvent.keyboardModifiers |= Fw::KeyboardCtrlModifier;
+        return;
+    } else if (keyCode == Fw::KeyAlt) {
         m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
         return;
 #else
@@ -136,6 +142,9 @@ void PlatformWindow::processKeyUp(Fw::Key keyCode)
         return;
 #if defined(__APPLE__)
     } else if (keyCode == Fw::KeyMeta) {
+        m_inputEvent.keyboardModifiers &= ~Fw::KeyboardCtrlModifier;
+        return;
+    } else if (keyCode == Fw::KeyAlt) {
         m_inputEvent.keyboardModifiers &= ~Fw::KeyboardAltModifier;
         return;
 #else

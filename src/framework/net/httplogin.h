@@ -26,6 +26,13 @@
 #    define CPPHTTPLIB_OPENSSL_SUPPORT
 #endif
 #include <framework/luaengine/luaobject.h>
+// On macOS, httplib.h pulls in CoreFoundation/MacTypes.h which defines
+// Size, Point, Rect in the global namespace, conflicting with otclient's
+// own type aliases. Disable the macOS-specific features that trigger this.
+#if defined(__APPLE__)
+#    undef CPPHTTPLIB_USE_NON_BLOCKING_GETADDRINFO
+#    define CPPHTTPLIB_DISABLE_MACOSX_AUTOMATIC_ROOT_CERTIFICATES
+#endif
 #include <httplib.h>
 
 class LoginHttp final : public LuaObject

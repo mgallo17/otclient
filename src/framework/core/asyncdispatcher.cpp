@@ -33,7 +33,7 @@ uint8_t getThreadCount() {
     */
 
     static constexpr auto MIN_THREADS = 2u;
-    static constexpr auto MAX_THREADS = 12u;
+    static constexpr auto MAX_THREADS = 3u;
 
     return std::clamp<int_fast8_t>(std::thread::hardware_concurrency() - 1, MIN_THREADS, MAX_THREADS);
 }

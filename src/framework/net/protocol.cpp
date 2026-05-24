@@ -407,11 +407,13 @@ void Protocol::xteaEncrypt(const OutputMessagePtr& outputMessage) const
 
 void Protocol::onConnect() {
     if (g_game.getClientVersion() >= 1200) {
-        std::string sendWorldName(g_game.getWorldName());
-        sendWorldName += '\n';
-        const auto& msg = std::make_shared<OutputMessage>();
-        msg->addBytes(std::string_view(sendWorldName));
-        send(msg, true);
+        if (g_game.getFeature(Otc::GameWorldNameOnConnect)) {
+            std::string sendWorldName(g_game.getWorldName());
+            sendWorldName += '\n';
+            const auto& msg = std::make_shared<OutputMessage>();
+            msg->addBytes(std::string_view(sendWorldName));
+            send(msg, true);
+        }
 
         enabledSequencedPackets();
     }

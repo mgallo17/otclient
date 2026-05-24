@@ -240,8 +240,6 @@ function displayMessage(mode, text)
         MessageTypes[MessageModes.ValuableLoot] = MessageSettings.centerGreen
         MessageTypes[MessageModes.Guild] = MessageSettings.centerGreen
         MessageTypes[MessageModes.Party] = MessageSettings.centerGreen
-        MessageTypes[MessageModes.MonsterSay] = MessageSettings.consoleOrange
-        MessageTypes[MessageModes.MonsterYell] = MessageSettings.consoleOrange
     end
     local msgtype = MessageTypes[mode]
     if not msgtype then
@@ -284,27 +282,7 @@ function displayMessage(mode, text)
 end
 
 function displayPrivateMessage(text)
-    if not g_game.isOnline() then
-        return
-    end
-    
-    local msgtype = MessageSettings.private
-    if not msgtype or not msgtype.screenTarget then
-        return
-    end
-    
-    local label = messagesPanel:recursiveGetChildById(msgtype.screenTarget)
-    if not label then
-        return
-    end
-    
-    label:setText(text)
-    label:setColor(msgtype.color)
-    label:setVisible(true)
-    removeEvent(label.hideEvent)
-    label.hideEvent = scheduleEvent(function()
-        label:setVisible(false)
-    end, calculateVisibleTime(text))
+    displayMessage(254, text)
 end
 
 function displayStatusMessage(text)

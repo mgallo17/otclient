@@ -325,9 +325,7 @@ function UIMoveableTabBar:addTab(text, panel, menuCallback)
     tab.onDragLeave = onTabDragLeave
     tab.onDragMove = onTabDragMove
     tab.onDestroy = function()
-        if not tab.tabPanel:isDestroyed() then
-            tab.tabPanel:destroy()
-        end
+        tab.tabPanel:destroy()
     end
 
     if #self.tabs == 0 then

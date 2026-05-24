@@ -84,7 +84,6 @@ GameServerOpcodes = {
     GameServerFloorChangeUp = 190,
     GameServerFloorChangeDown = 191,
     GameServerChooseOutfit = 200,
-    GameServerExivaRestrictions = 202,
     GameServerVipAdd = 210,
     GameServerVipLogin = 211,
     GameServerVipLogout = 212,

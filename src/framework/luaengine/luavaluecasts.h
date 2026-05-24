@@ -132,6 +132,15 @@ inline int push_luavalue(lua_u64 v)
     return 1;
 }
 
+#if defined(__APPLE__) && defined(__aarch64__)
+// On ARM64 macOS, unsigned long long is distinct from unsigned long even though both are 64-bit
+inline int push_luavalue(const unsigned long long v)
+{
+    push_luavalue(static_cast<double>(v));
+    return 1;
+}
+#endif
+
 template<typename T = lua_u64, std::enable_if_t<!std::is_same_v<T, unsigned long>, int> = 0>
 inline bool luavalue_cast(const int idx, lua_u64& v)
 {
@@ -140,6 +149,16 @@ inline bool luavalue_cast(const int idx, lua_u64& v)
     v = static_cast<lua_u64>(d);
     return r;
 }
+
+#if defined(__APPLE__) && defined(__aarch64__)
+inline bool luavalue_cast(const int idx, unsigned long long& v)
+{
+    double d;
+    const bool r = luavalue_cast(idx, d);
+    v = static_cast<unsigned long long>(d);
+    return r;
+}
+#endif
 
 // string
 int push_luavalue(const char* cstr);
