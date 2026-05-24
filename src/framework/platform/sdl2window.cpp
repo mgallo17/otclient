@@ -35,7 +35,7 @@ SDL2Window::SDL2Window()
 void SDL2Window::init()
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        g_logger.fatal(stdext::format("SDL2 init failed: %s", SDL_GetError()));
+        g_logger.fatal("SDL2 init failed: {}", SDL_GetError());
         return;
     }
 
@@ -51,17 +51,17 @@ void SDL2Window::init()
         "OTClient",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         800, 600,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN
     );
 
     if (!m_window) {
-        g_logger.fatal(stdext::format("SDL2 window creation failed: %s", SDL_GetError()));
+        g_logger.fatal("SDL2 window creation failed: {}", SDL_GetError());
         return;
     }
 
     m_glContext = SDL_GL_CreateContext(m_window);
     if (!m_glContext) {
-        g_logger.fatal(stdext::format("SDL2 GL context creation failed: %s", SDL_GetError()));
+        g_logger.fatal("SDL2 GL context creation failed: {}", SDL_GetError());
         return;
     }
 
@@ -70,13 +70,13 @@ void SDL2Window::init()
     // Initialize GLEW
     GLenum err = glewInit();
     if (err != GLEW_OK) {
-        g_logger.fatal(stdext::format("GLEW init failed: %s", (const char*)glewGetErrorString(err)));
+        g_logger.fatal("GLEW init failed: {}", (const char*)glewGetErrorString(err));
         return;
     }
 
-    // Get initial window size
+    // Get initial drawable size (actual pixels, not logical points on HiDPI/Retina)
     int w, h;
-    SDL_GetWindowSize(m_window, &w, &h);
+    SDL_GL_GetDrawableSize(m_window, &w, &h);
     m_size = Size(w, h);
 
     int x, y;
@@ -86,11 +86,27 @@ void SDL2Window::init()
     // Enable text input
     SDL_StartTextInput();
 
+    // Compute HiDPI scale factor
+    updateDpiScale();
+
     m_created = true;
     m_visible = true;
     m_focused = true;
 
     m_defaultCursor = SDL_GetDefaultCursor();
+}
+
+void SDL2Window::updateDpiScale()
+{
+    int winW, winH, drawW, drawH;
+    SDL_GetWindowSize(m_window, &winW, &winH);
+    SDL_GL_GetDrawableSize(m_window, &drawW, &drawH);
+    m_dpiScale = (winW > 0) ? static_cast<float>(drawW) / static_cast<float>(winW) : 1.0f;
+}
+
+Point SDL2Window::scaleMousePos(int x, int y) const
+{
+    return Point(static_cast<int>(x * m_dpiScale), static_cast<int>(y * m_dpiScale));
 }
 
 void SDL2Window::terminate()
@@ -166,7 +182,11 @@ void SDL2Window::poll()
                 switch (event.window.event) {
                     case SDL_WINDOWEVENT_RESIZED:
                     case SDL_WINDOWEVENT_SIZE_CHANGED: {
-                        Size newSize(event.window.data1, event.window.data2);
+                        // Use drawable size (actual pixels) not logical points for HiDPI/Retina
+                        updateDpiScale();
+                        int dw, dh;
+                        SDL_GL_GetDrawableSize(m_window, &dw, &dh);
+                        Size newSize(dw, dh);
                         if (m_size != newSize) {
                             m_size = newSize;
                             needsResizeUpdate = true;
@@ -241,7 +261,7 @@ void SDL2Window::poll()
                 if (m_onInputEvent) {
                     InputEvent inputEvent;
                     inputEvent.type = Fw::MouseMoveInputEvent;
-                    inputEvent.mousePos = Point(event.motion.x, event.motion.y);
+                    inputEvent.mousePos = scaleMousePos(event.motion.x, event.motion.y);
                     m_inputEvent.mousePos = inputEvent.mousePos;
                     m_onInputEvent(inputEvent);
                 }
@@ -252,7 +272,7 @@ void SDL2Window::poll()
                 if (m_onInputEvent) {
                     InputEvent inputEvent;
                     inputEvent.type = Fw::MousePressInputEvent;
-                    inputEvent.mousePos = Point(event.button.x, event.button.y);
+                    inputEvent.mousePos = scaleMousePos(event.button.x, event.button.y);
                     m_inputEvent.mousePos = inputEvent.mousePos;
 
                     switch (event.button.button) {
@@ -281,7 +301,7 @@ void SDL2Window::poll()
                 if (m_onInputEvent) {
                     InputEvent inputEvent;
                     inputEvent.type = Fw::MouseReleaseInputEvent;
-                    inputEvent.mousePos = Point(event.button.x, event.button.y);
+                    inputEvent.mousePos = scaleMousePos(event.button.x, event.button.y);
                     m_inputEvent.mousePos = inputEvent.mousePos;
 
                     switch (event.button.button) {
@@ -383,8 +403,15 @@ void SDL2Window::setVerticalSync(bool enable)
 void SDL2Window::setIcon(const std::string& file)
 {
     ImagePtr image = Image::load(file);
-    if (!image)
+    if (!image) {
+        g_logger.error("SDL2: unable to load icon file '{}'", file);
         return;
+    }
+
+    if (image->getBpp() != 4) {
+        g_logger.error("SDL2: icon must have 4 channels (RGBA)");
+        return;
+    }
 
     int width = image->getWidth();
     int height = image->getHeight();
@@ -396,6 +423,8 @@ void SDL2Window::setIcon(const std::string& file)
     if (surface) {
         SDL_SetWindowIcon(m_window, surface);
         SDL_FreeSurface(surface);
+    } else {
+        g_logger.error("SDL2: failed to create icon surface: {}", SDL_GetError());
     }
 }
 
