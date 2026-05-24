@@ -51,7 +51,7 @@ ELSE (WIN32)
     # On MacOS X the default method is to use OpenGL.framework.
     # Changing the OPENGL_USE_APPLE_X11 option will allow using
     # OpenGL with X11 instead.
-    OPTION (OPENGL_USE_APPLE_X11 "Use X11 OpenGL on OSX?" ON)
+    OPTION (OPENGL_USE_APPLE_X11 "Use X11 OpenGL on OSX?" OFF)
 
     IF (NOT OPENGL_USE_APPLE_X11)
 

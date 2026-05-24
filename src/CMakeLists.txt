@@ -252,9 +252,21 @@ if(ANDROID)
   find_package(EGL REQUIRED)
 else()
   if(NOT WASM)
+    if(APPLE)
+      # Force macOS to use the native OpenGL.framework instead of X11's libGL
+      set(CMAKE_FIND_FRAMEWORK FIRST)
+      set(OPENGL_gl_LIBRARY "-framework OpenGL" CACHE FILEPATH "" FORCE)
+      set(OPENGL_glu_LIBRARY "" CACHE FILEPATH "" FORCE)
+    endif()
     find_package(OpenGL REQUIRED)
     if(DEFINED VCPKG_TARGET_TRIPLET)
       find_package(GLEW REQUIRED)
+      if(APPLE)
+        # Override GLEW's hardcoded link to X11's libGL.dylib — use OpenGL.framework instead
+        set_target_properties(GLEW::glew_s PROPERTIES
+          INTERFACE_LINK_LIBRARIES "-framework OpenGL"
+        )
+      endif()
     else()
       pkg_check_modules(GLEW REQUIRED IMPORTED_TARGET glew)
       add_library(GLEW::GLEW ALIAS PkgConfig::GLEW)

@@ -64,10 +64,13 @@ protected:
 private:
     Fw::Key sdlKeyToFwKey(SDL_Keycode key);
     void updateKeyboardModifiers(SDL_Keymod mod);
+    void updateDpiScale();
+    Point scaleMousePos(int x, int y) const;
 
     SDL_Window* m_window{ nullptr };
     SDL_GLContext m_glContext{ nullptr };
     std::vector<SDL_Cursor*> m_cursors;
     SDL_Cursor* m_defaultCursor{ nullptr };
     bool m_mouseHidden{ false };
+    float m_dpiScale{ 1.0f };
 };

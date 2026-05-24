@@ -30,7 +30,7 @@ function init()
     if maximized then g_window.maximize() end
 
     g_window.setTitle(g_app.getName())
-    g_window.setIcon('/images/clienticon')
+    g_window.setIcon('/images/otcicon')
 
     -- poll resize events
     g_window.poll()
