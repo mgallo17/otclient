@@ -16,8 +16,32 @@ function g_game.findPlayerItem(itemId, subType, tier)
     return g_game.findItemInContainers(itemId, subType, tier or 0)
 end
 
-function g_game.chooseRsa(host)
-    if G.currentRsa ~= CIPSOFT_RSA and G.currentRsa ~= OTSERV_RSA then
+function g_game.chooseRsa(host, port)
+    -- O servidor do dump 7.7 (Zanera) usa a chave do proprio bin/game, que nao e a
+    -- OTSERV_RSA nem a CIPSOFT_RSA. Como varios servidores nossos dividem o mesmo IP,
+    -- a distincao e pela porta. Fica aqui dentro do gamelib de proposito: os modulos
+    -- sao sandboxed, entao ZANERA_RSA so e visivel no ambiente onde foi definida.
+    if port == 7575 or port == 7576 then
+        g_game.setRsa(ZANERA_RSA)
+
+        -- O features.lua liga GameTileAddThingWithStackpos para toda versao >= 770,
+        -- porque as reimplementacoes (OTServ/TFS) mandam esse byte no AddThing (0x6A).
+        -- O binario original da CipSoft NAO manda: o pacote real e opcode + posicao(5)
+        -- + coisa, sem stackpos. Com a feature ligada o cliente le 1 byte a mais, sai
+        -- de sincronia e antes da correcao do laco isso congelava o jogo.
+        -- Roda aqui porque chooseRsa e chamado depois do setClientVersion, que e o que
+        -- dispara o features.lua -- desligar antes seria sobrescrito.
+        g_game.disableFeature(GameTileAddThingWithStackpos)
+
+        -- Mesmo caso: o features.lua liga GameWritableDate para versao >= 770 (na
+        -- vanilla do OTClient ela so entra em 790+). Com ela o parseEditText le uma
+        -- string de data no fim da mensagem 0x96, que o servidor da CipSoft nao
+        -- manda -- e abrir uma carta estoura o parser.
+        g_game.disableFeature(GameWritableDate)
+        return
+    end
+
+    if G.currentRsa ~= CIPSOFT_RSA and G.currentRsa ~= OTSERV_RSA and G.currentRsa ~= ZANERA_RSA then
         return
     end
     if host:ends('.tibia.com') or host:ends('.cipsoft.com') then

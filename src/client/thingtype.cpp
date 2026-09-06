@@ -28,6 +28,7 @@
 #include "lightview.h"
 #include "spriteappearances.h"
 #include "spritemanager.h"
+#include "thingtypemanager.h"
 #include "framework/core/asyncdispatcher.h"
 #include "framework/core/filestream.h"
 #include "framework/graphics/drawpoolmanager.h"
@@ -451,6 +452,11 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
     m_id = clientId;
     m_category = category;
 
+    uint16_t version = g_game.getClientVersion();
+    if (g_things.getDatSignature() == 0x439D5A33) {
+        version = 772;
+    }
+
     int count = 0;
     int attr = -1;
     bool done = false;
@@ -462,7 +468,7 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
             break;
         }
 
-        if (g_game.getClientVersion() >= 1000) {
+        if (version >= 1000) {
             /* In 10.10+ all attributes from 16 and up were
              * incremented by 1 to make space for 16 as
              * "No Movement Animation" flag.
@@ -475,12 +481,12 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
                 attr = ThingAttrDefaultAction;
             } else if (attr > 16)
                 attr -= 1;
-        } else if (g_game.getClientVersion() >= 860) {
+        } else if (version >= 860) {
             /* Default attribute values follow
              * the format of 8.6-9.86.
              * Therefore no changes here.
              */
-        } else if (g_game.getClientVersion() >= 780) {
+        } else if (version >= 780) {
             /* In 7.80-8.54 all attributes from 8 and higher were
              * incremented by 1 to make space for 8 as
              * "Item Charges" flag.
@@ -491,11 +497,11 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
             }
             if (attr > 8)
                 attr -= 1;
-        } else if (g_game.getClientVersion() >= 755) {
+        } else if (version >= 755) {
             /* In 7.55-7.72 attributes 23 is "Floor Change". */
             if (attr == 23)
                 attr = ThingAttrFloorChange;
-        } else if (g_game.getClientVersion() >= 740) {
+        } else if (version >= 740) {
             /* In 7.4-7.5 attribute "Ground Border" did not exist
              * attributes 1-15 have to be adjusted.
              * Several other changes in the format.
@@ -540,7 +546,7 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
         switch (attr) {
             case ThingAttrDisplacement:
             {
-                if (g_game.getClientVersion() >= 755) {
+                if (version >= 755) {
                     if (g_game.getFeature(Otc::GameNegativeOffset)) {
                         m_displacement.x = fin->get16();
                         m_displacement.y = fin->get16();
@@ -608,7 +614,7 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
         m_layers = fin->getU8();
         m_numPatternX = fin->getU8();
         m_numPatternY = fin->getU8();
-        if (g_game.getClientVersion() >= 755)
+        if (version >= 755)
             m_numPatternZ = fin->getU8();
         else
             m_numPatternZ = 1;

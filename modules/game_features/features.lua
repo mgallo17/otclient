@@ -14,11 +14,8 @@ controller:registerEvents(g_game, {
         g_game.enableFeature(GameMapCache)
         -- g_game.enableFeature(GameSmoothWalkElevation)
 
-        if version >= 750 then
+        if version >= 740 then
             g_game.enableFeature(GameSoul)
-        end
-
-        if version >= 760 then
             g_game.enableFeature(GameLevelU16)
         end
 

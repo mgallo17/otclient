@@ -46,7 +46,10 @@ local function tryLogin(charInfo, tries)
     CharacterList.hide()
 
     if g_app.getOs() == 'mac' then
-        g_game.setCustomOs(11) -- CLIENTOS_OTCLIENT_WINDOWS, workaround for servers that don't support Mac OS type
+        -- O servidor 7.7 original so aceita os <= 2 (HandleLogin rejeita o resto com
+        -- "Your terminal version is too old"), entao 11 (CLIENTOS_OTCLIENT_WINDOWS)
+        -- nao serve. Original: g_game.setCustomOs(11)
+        g_game.setCustomOs(OsTypes.Windows) -- 2
     end
 
     g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,

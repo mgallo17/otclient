@@ -89,6 +89,17 @@ protected:
     static std::list<std::shared_ptr<asio::streambuf>> m_outputStreams;
     std::shared_ptr<asio::streambuf> m_outputStream;
     asio::streambuf m_inputStream;
+    std::vector<uint8_t> m_recvBuffer;
+
+public:
+    // Diagnostico: total de bytes que realmente vieram do socket. Serve para
+    // distinguir um flood vindo do servidor de um loop local reprocessando o
+    // mesmo buffer -- se este numero nao sobe, o dado nao veio da rede.
+    static uint64_t getTotalRecvBytes() { return m_totalRecvBytes; }
+    static uint64_t getTotalRecvCount() { return m_totalRecvCount; }
+private:
+    static uint64_t m_totalRecvBytes;
+    static uint64_t m_totalRecvCount;
     bool m_connected{ false };
     bool m_connecting{ false };
     std::error_code m_error;

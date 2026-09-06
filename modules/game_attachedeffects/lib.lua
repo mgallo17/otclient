@@ -186,6 +186,12 @@ AttachedEffectManager = {
                 end
             end
         end
+
+        if not __EFFECTS[id] then
+            g_logger.error("AttachedEffectManager.getConfig: effect id " .. id .. " not registered.")
+            return {}
+        end
+
         return __EFFECTS[id].config
     end,
     executeThingConfig = function(effect, category, thingId)

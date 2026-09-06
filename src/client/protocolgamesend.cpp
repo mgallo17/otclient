@@ -47,9 +47,19 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
 {
     const auto& msg = std::make_shared<OutputMessage>();
 
+    /* O game-server 7.7 original (bin/game da CipSoft) le o SO e a versao de
+     * DENTRO do bloco RSA, logo apos a chave XTEA -- e nao em texto puro no
+     * cabecalho, como fazem as reimplementacoes de private server. Colocando
+     * fora, o servidor le lixo no lugar da versao e recusa o login com
+     * "Your terminal version is too old". Ver HandleLogin em 0x80dd5b0. */
+    const bool osVersionInsideRsa = g_game.getProtocolVersion() <= 772 &&
+                                    g_game.getFeature(Otc::GameLoginPacketEncryption);
+
     msg->addU8(Proto::ClientPendingGame);
-    msg->addU16(g_game.getOs());
-    msg->addU16(g_game.getProtocolVersion());
+    if (!osVersionInsideRsa) {
+        msg->addU16(g_game.getOs());
+        msg->addU16(g_game.getProtocolVersion());
+    }
 
     if (g_game.getFeature(Otc::GameClientVersion))
         msg->addU32(g_game.getClientVersion());
@@ -78,6 +88,12 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
         msg->addU32(m_xteaKey[1]);
         msg->addU32(m_xteaKey[2]);
         msg->addU32(m_xteaKey[3]);
+
+        /* 7.7: SO e versao vao aqui dentro, logo depois da chave XTEA. */
+        if (osVersionInsideRsa) {
+            msg->addU16(g_game.getOs());
+            msg->addU16(g_game.getProtocolVersion());
+        }
     }
 
     msg->addU8(0); // is gm set?

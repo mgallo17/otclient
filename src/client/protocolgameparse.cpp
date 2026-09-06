@@ -32,6 +32,7 @@
 #include "protocolcodes.h"
 #include "luavaluecasts_client.h"
 #include "map.h"
+#include <framework/net/connection.h>
 #include "mapview.h"
 #include "missile.h"
 #include "thingtype.h"
@@ -50,7 +51,19 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
     int prevOpcode = -1;
 
     try {
+        int lastReadPos = -1;
         while (!msg->eof()) {
+            // Trava de seguranca: se uma iteracao nao consumir nada, o laco esta preso
+            // (foi assim que o cliente congelava com 100% de CPU). Melhor abandonar a
+            // mensagem e registrar do que travar o jogo inteiro.
+            if (msg->getReadPos() == lastReadPos) {
+                g_logger.error("ProtocolGame::parseMessage: laco sem progresso na posicao {} "
+                               "(opcode 0x{:02X}, {} bytes) -- descartando a mensagem",
+                               msg->getReadPos(), opcode, msg->getMessageSize());
+                break;
+            }
+            lastReadPos = msg->getReadPos();
+
             opcode = msg->getU8();
             AutoStat s(STATS_PACKETS, fmt::format("{} (0x{:02X})", opcode, opcode));
 
@@ -653,10 +666,28 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                         hexDump << fmt::format("{:02X} ", byte);
                     }
 
-                    g_logger.warning(
-                        "[{}] Unhandled opcode 0x{:02X} ({}) with {} unread bytes; previous opcode: 0x{:02X} ({}); next bytes: {}",
-                        g_game.getClientVersion(), opcode, opcode, unreadSize, prevOpcode, prevOpcode, hexDump.str());
-                    msg->setReadPos(msg->getMessageSize());
+                    // Estrangulado de proposito: quando o parser sai de sincronia isso
+                    // dispara centenas de milhares de vezes por segundo e o log chega a
+                    // varios GB (o proprio custo de formatar a string vira o gargalo).
+                    // Junto vai o total de bytes lidos do socket: se ele sobe junto com o
+                    // contador, o flood vem mesmo do servidor; se fica parado, o cliente
+                    // esta reprocessando o mesmo buffer.
+                    static uint64_t unhandledCount = 0;
+                    ++unhandledCount;
+                    if (unhandledCount <= 3 || unhandledCount % 100000 == 0) {
+                        g_logger.warning(
+                            "[{}] Unhandled opcode 0x{:02X} ({}) with {} unread bytes; previous opcode: 0x{:02X} ({}); next bytes: {} "
+                            "| ocorrencia #{} | socket: {} bytes em {} leituras",
+                            g_game.getClientVersion(), opcode, opcode, unreadSize, prevOpcode, prevOpcode, hexDump.str(),
+                            unhandledCount, Connection::getTotalRecvBytes(), Connection::getTotalRecvCount());
+                    }
+                    // NAO usar setReadPos(getMessageSize()): esse valor e absoluto, mas
+                    // eof() compara descontando o cabecalho ((readPos - headerPos) >=
+                    // messageSize). Com os dois desencontrados o laco nunca termina e o
+                    // cliente congela relendo o mesmo byte (chegou a 139 milhoes de
+                    // iteracoes sem um unico byte novo do socket). skipBytes anda pelo
+                    // que sobrou e garante que eof() vire verdadeiro.
+                    msg->skipBytes(msg->getUnreadSize());
                     break;
                 }
             }
@@ -671,6 +702,14 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
         for (const auto byte : remainingBytes) {
             hexDump << fmt::format("{:02X} ", byte);
         }
+
+        // Despejo da mensagem INTEIRA (nao so a cauda nao lida): sem o inicio nao da
+        // para descobrir em que campo o parser saiu de sincronia.
+        std::stringstream fullDump;
+        for (size_t i = 0; i < msg->getMessageSize(); ++i) {
+            fullDump << fmt::format("{:02X} ", static_cast<uint8_t>(msg->getBuffer()[i]));
+        }
+        g_logger.error("MENSAGEM COMPLETA ({} bytes): {}", msg->getMessageSize(), fullDump.str());
 
         g_logger.error(
             "ProtocolGame parse message exception ({} bytes, {} unread at pos {}, last opcode: 0x{:02X} ({:d}), prev opcode: 0x{:02X} ({:d}), protocol: {}): {}\n"
@@ -4148,11 +4187,11 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
 
     const auto& item = Item::create(id);
 
-    if (!item) {
-        throw Exception("ProtocolGame::getItem: unable to create item with invalid id {}", id);
-    }
-
-    if (item->getId() == 0) {
+    if (!item || item->getId() == 0) {
+        const auto& fallbackItem = Item::create(100);
+        if (fallbackItem && fallbackItem->getId() != 0) {
+            return fallbackItem;
+        }
         throw Exception("ProtocolGame::getItem: unable to create item with invalid id {}", id);
     }
 
