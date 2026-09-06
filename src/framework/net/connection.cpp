@@ -289,8 +289,13 @@ void Connection::onWrite(const std::error_code& error, size_t, const std::shared
         handleError(error);
 }
 
+uint64_t Connection::m_totalRecvBytes = 0;
+uint64_t Connection::m_totalRecvCount = 0;
+
 void Connection::onRecv(const std::error_code& error, const size_t recvSize)
 {
+    m_totalRecvBytes += recvSize;
+    ++m_totalRecvCount;
     m_readTimer.cancel();
     m_activityTimer.restart();
 
@@ -299,12 +304,27 @@ void Connection::onRecv(const std::error_code& error, const size_t recvSize)
 
     if (m_connected) {
         if (!error) {
-            if (m_recvCallback) {
-                const auto* header = asio::buffer_cast<const char*>(m_inputStream.data());
-                m_recvCallback((uint8_t*)header, recvSize);
+            // Copia os bytes e consome o streambuf ANTES de chamar o callback.
+            // O callback (Protocol::internalRecvHeader) chama read() de dentro
+            // dele, e read() faz prepare() + async_read; se o consume ficasse
+            // para depois, ele mexeria no streambuf com uma operacao assincrona
+            // ja pendente sobre o mesmo buffer -- uso invalido do asio. O stream
+            // saia de sincronia e o cliente reprocessava o mesmo trecho em loop
+            // (flood de "Unhandled opcode" a centenas de milhares por segundo).
+            if (recvSize > 0) {
+                const auto* data = asio::buffer_cast<const uint8_t*>(m_inputStream.data());
+                m_recvBuffer.assign(data, data + recvSize);
+            } else {
+                m_recvBuffer.clear();
             }
-        } else
-            handleError(error);
+            m_inputStream.consume(recvSize);
+
+            if (m_recvCallback)
+                m_recvCallback(m_recvBuffer.data(), recvSize);
+            return;
+        }
+
+        handleError(error);
     }
 
     if (!error)

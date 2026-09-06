@@ -16,7 +16,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+            // Only arm64-v8a for Pixel 9 Pro XL (can add others later for broader device support)
+            abiFilters += listOf("arm64-v8a")
         }
 
         externalNativeBuild {

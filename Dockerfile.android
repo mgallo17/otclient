@@ -39,12 +39,12 @@ RUN cd /otclient && chmod +x build_luajit_android.sh && ./build_luajit_android.s
 RUN mkdir -p /otclient/android/app/src/main/assets \
     && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua
 
-# Build APK inside the image
+# Build APK inside the image (debug - no signing required)
 RUN cd /otclient/android \
     && tr -d '\r' < gradlew > gradlew_unix \
     && chmod +x gradlew_unix \
-    && ./gradlew_unix assembleRelease
+    && ./gradlew_unix assembleDebug
 
 # Minimal stage to extract APK
 FROM scratch AS apk-artifacts
-COPY --from=builder /otclient/android/app/build/outputs/apk/release/ /
+COPY --from=builder /otclient/android/app/build/outputs/apk/debug/ /

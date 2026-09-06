@@ -443,6 +443,9 @@ std::string ResourceManager::getUserDir()
     return getBaseDir() + "/";
 #elif defined(__EMSCRIPTEN__)
     return "/user/";
+#elif defined(__APPLE__)
+    // Portable mode: store all user data next to the binary (no traces in ~/Library)
+    return PHYSFS_getBaseDir();
 #else
     static const char* orgName = g_app.getOrganizationName().data();
     static const char* appName = g_app.getCompactName().data();

@@ -582,7 +582,7 @@ end
 function EnterGame.tryHttpLogin(clientVersion, httpLogin)
     g_game.setClientVersion(clientVersion)
     g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
-    g_game.chooseRsa(G.host)
+    g_game.chooseRsa(G.host, G.port)
     if not modules.game_things.isLoaded() then
         if loadBox then
             loadBox:destroy()
@@ -763,7 +763,7 @@ function EnterGame.doLogin()
 
         g_game.setClientVersion(clientVersion)
         g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
-        g_game.chooseRsa(G.host)
+        g_game.chooseRsa(G.host, G.port)
 
         if modules.game_things.isLoaded() then
             protocolLogin:login(G.host, G.port, G.account, G.password, G.authenticatorToken, G.stayLogged)

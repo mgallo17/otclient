@@ -327,3 +327,17 @@ android/app/.cxx/
 android/.gradle/
 android/build/
 luajit-src/
+
+# --- ambiente local (nao versionar) ---
+# Dados de execucao do cliente: config.otml guarda contas e senhas,
+# alem de minimapa, screenshots e cache.
+.otclient/
+
+# Saidas de build
+build-tibia77/
+apk-output/
+otclient copy
+
+# Cliente oficial da CipSoft (7.7, 2006) usado como referencia de protocolo.
+# Binario proprietario de terceiros -- nao vai para o repositorio.
+tibia77/
