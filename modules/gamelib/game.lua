@@ -18,10 +18,16 @@ end
 
 function g_game.chooseRsa(host, port)
     -- O servidor do dump 7.7 (Zanera) usa a chave do proprio bin/game, que nao e a
-    -- OTSERV_RSA nem a CIPSOFT_RSA. Como varios servidores nossos dividem o mesmo IP,
-    -- a distincao e pela porta. Fica aqui dentro do gamelib de proposito: os modulos
-    -- sao sandboxed, entao ZANERA_RSA so e visivel no ambiente onde foi definida.
-    if port == 7575 or port == 7576 then
+    -- OTSERV_RSA nem a CIPSOFT_RSA. Fica aqui dentro do gamelib de proposito: os
+    -- modulos sao sandboxed, entao ZANERA_RSA so e visivel no ambiente onde foi
+    -- definida.
+    --
+    -- Checagem por HOST, nao por porta: testei distinguir por porta (7575/7576)
+    -- e quebrou ao subir uma stack de staging nas portas 7674/7676 -- a de login
+    -- (7674) nao batia com o if, o cliente usava a chave errada so nessa etapa,
+    -- e ficava preso em "connecting to login server" sem nenhum erro visivel.
+    -- Todo ambiente nosso (producao, staging, teste) fica no mesmo host.
+    if host == "100.122.232.250" then
         g_game.setRsa(ZANERA_RSA)
 
         -- O features.lua liga GameTileAddThingWithStackpos para toda versao >= 770,
