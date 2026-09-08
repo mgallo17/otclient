@@ -7,7 +7,7 @@ local currentLocale
 
 function sendLocale(localeName)
     local protocolGame = g_game.getProtocolGame()
-    if protocolGame then
+    if protocolGame and protocolGame.canSendExtendedOpcode and protocolGame:canSendExtendedOpcode() then
         protocolGame:sendExtendedOpcode(ExtendedIds.Locale, localeName)
         return true
     end

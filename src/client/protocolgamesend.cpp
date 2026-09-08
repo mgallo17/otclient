@@ -39,7 +39,7 @@ void ProtocolGame::sendExtendedOpcode(const uint8_t opcode, const std::string& b
         msg->addString(buffer);
         send(msg);
     } else {
-        g_logger.error("Unable to send extended opcode {}, extended opcodes are not enabled", opcode);
+        g_logger.debug("Unable to send extended opcode {}, extended opcodes are not enabled", opcode);
     }
 }
 
