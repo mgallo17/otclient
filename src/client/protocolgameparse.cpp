@@ -3692,6 +3692,7 @@ void ProtocolGame::parseExtendedOpcode(const InputMessagePtr& msg)
 
     if (opcode == 0) {
         m_enableSendExtendedOpcode = true;
+        callLuaField("onExtendedOpcode", opcode, buffer);
     } else if (opcode == 2) {
         parsePingBack(msg);
     } else {

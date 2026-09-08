@@ -35,6 +35,11 @@ function init()
     )
 
     ProtocolGame.registerExtendedOpcode(GAME_SHOP_CODE, onExtendedOpcode)
+    ProtocolGame.registerExtendedOpcode(ExtendedIds.Activate, function(protocol, opcode, buffer)
+        if gameShopWindow and protocol and protocol.canSendExtendedOpcode and protocol:canSendExtendedOpcode() then
+            protocol:sendExtendedOpcode(GAME_SHOP_CODE, json.encode({action = "fetch", data = {}}))
+        end
+    end)
     if g_game.isOnline() then
         create()
     end
@@ -50,6 +55,7 @@ function terminate()
     )
 
     ProtocolGame.unregisterExtendedOpcode(GAME_SHOP_CODE, onExtendedOpcode)
+    ProtocolGame.unregisterExtendedOpcode(ExtendedIds.Activate)
     destroy()
 end
 
