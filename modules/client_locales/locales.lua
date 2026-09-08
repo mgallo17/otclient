@@ -88,6 +88,9 @@ function init()
     end
 
     ProtocolGame.registerExtendedOpcode(ExtendedIds.Locale, onExtendedLocales)
+    ProtocolGame.registerExtendedOpcode(ExtendedIds.Activate, function(protocol, opcode, buffer)
+        sendLocale(currentLocale.name)
+    end)
     connect(g_game, {
         onGameStart = onGameStart
     })
@@ -98,6 +101,7 @@ function terminate()
     currentLocale = nil
 
     ProtocolGame.unregisterExtendedOpcode(ExtendedIds.Locale)
+    ProtocolGame.unregisterExtendedOpcode(ExtendedIds.Activate)
     if g_app.hasUpdater() then
         disconnect(g_app, {
             onUpdateFinished = createWindow,
