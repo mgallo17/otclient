@@ -453,6 +453,7 @@ void Client::registerLuaFunctions()
     g_lua.registerClass<ProtocolGame, Protocol>();
     g_lua.bindClassStaticFunction<ProtocolGame>("create", [] { return std::make_shared<ProtocolGame>(); });
     g_lua.bindClassMemberFunction<ProtocolGame>("sendExtendedOpcode", &ProtocolGame::sendExtendedOpcode);
+    g_lua.bindClassMemberFunction<ProtocolGame>("canSendExtendedOpcode", &ProtocolGame::canSendExtendedOpcode);
 
     g_lua.registerClass<Container>();
     g_lua.bindClassMemberFunction<Container>("getItem", &Container::getItem);

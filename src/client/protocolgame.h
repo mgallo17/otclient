@@ -32,6 +32,7 @@ public:
     void login(std::string_view accountName, std::string_view accountPassword, std::string_view host, uint16_t port, std::string_view characterName, std::string_view authenticatorToken, std::string_view sessionKey);
 
     void sendExtendedOpcode(uint8_t opcode, const std::string& buffer);
+    bool canSendExtendedOpcode() const { return m_enableSendExtendedOpcode; }
     void sendLoginPacket(uint32_t challengeTimestamp, uint8_t challengeRandom);
     void sendEnterGame();
     void sendLogout();

@@ -58,6 +58,12 @@ function ProtocolGame.unregisterOpcode(opcode)
     opcodeCallbacks[opcode] = nil
 end
 
+if not ProtocolGame.canSendExtendedOpcode then
+    function ProtocolGame:canSendExtendedOpcode()
+        return false
+    end
+end
+
 function ProtocolGame.registerExtendedOpcode(opcode, callback)
     if not callback or type(callback) ~= 'function' then
         error('Invalid callback.')

@@ -94,7 +94,7 @@ function create()
     gameShopWindow:hide()
 
     local protocolGame = g_game.getProtocolGame()
-    if protocolGame then
+    if protocolGame and protocolGame.canSendExtendedOpcode and protocolGame:canSendExtendedOpcode() then
         protocolGame:sendExtendedOpcode(GAME_SHOP_CODE, json.encode({action = "fetch", data = {}}))
     end
     createTransferWindow()
