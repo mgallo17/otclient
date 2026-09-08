@@ -2,6 +2,7 @@ local opcodeCallbacks = {}
 local extendedCallbacks = {}
 local extendedJSONCallbacks = {}
 local extendedJSONData = {}
+local activateCallbacks = {}
 local maxPacketSize = 65000
 
 function ProtocolGame:onOpcode(opcode, msg)
@@ -15,6 +16,12 @@ function ProtocolGame:onOpcode(opcode, msg)
 end
 
 function ProtocolGame:onExtendedOpcode(opcode, buffer)
+    if opcode == 0 then
+        for _, callback in ipairs(activateCallbacks) do
+            callback(self, opcode, buffer)
+        end
+    end
+
     local callback = extendedCallbacks[opcode]
     if callback then
         callback(self, opcode, buffer)
@@ -73,6 +80,11 @@ function ProtocolGame.registerExtendedOpcode(opcode, callback)
         error('Invalid opcode. Range: 0-255')
     end
 
+    if opcode == 0 then
+        table.insert(activateCallbacks, callback)
+        return
+    end
+
     if extendedCallbacks[opcode] then
         error('Opcode is already taken.')
     end
@@ -80,9 +92,23 @@ function ProtocolGame.registerExtendedOpcode(opcode, callback)
     extendedCallbacks[opcode] = callback
 end
 
-function ProtocolGame.unregisterExtendedOpcode(opcode)
+function ProtocolGame.unregisterExtendedOpcode(opcode, callback)
     if opcode < 0 or opcode > 255 then
         error('Invalid opcode. Range: 0-255')
+    end
+
+    if opcode == 0 then
+        if callback then
+            for i, cb in ipairs(activateCallbacks) do
+                if cb == callback then
+                    table.remove(activateCallbacks, i)
+                    break
+                end
+            end
+        else
+            activateCallbacks = {}
+        end
+        return
     end
 
     if not extendedCallbacks[opcode] then
