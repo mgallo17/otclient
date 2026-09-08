@@ -561,6 +561,7 @@ void ProtocolGame::sendTalk(const Otc::MessageMode mode, const uint16_t channelI
     switch (mode) {
         case Otc::MessagePrivateTo:
         case Otc::MessageGamemasterPrivateTo:
+        case Otc::MessageAnonymousMessage:
         case Otc::MessageRVRAnswer:
             msg->addString(receiver);
             break;
@@ -568,6 +569,7 @@ void ProtocolGame::sendTalk(const Otc::MessageMode mode, const uint16_t channelI
         case Otc::MessageChannelHighlight:
         case Otc::MessageChannelManagement:
         case Otc::MessageGamemasterChannel:
+        case Otc::MessageAnonymousChannel:
             msg->addU16(channelId);
             break;
         default:
