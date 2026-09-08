@@ -22,6 +22,8 @@
 
 #pragma once
 
+#ifdef __APPLE__
+
 #include "platformwindow.h"
 #include <framework/graphics/glutil.h>
 #include <SDL2/SDL.h>
@@ -74,3 +76,5 @@ private:
     bool m_mouseHidden{ false };
     float m_dpiScale{ 1.0f };
 };
+
+#endif // __APPLE__
