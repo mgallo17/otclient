@@ -170,6 +170,9 @@ MessageTypes = {
     [MessageModes.RVRContinue] = MessageSettings.consoleYellow,
 
     [MessageModes.GamemasterBroadcast] = MessageSettings.consoleRed,
+    [MessageModes.AnonymousBroadcast] = MessageSettings.consoleRed,
+    [MessageModes.AnonymousChannel] = MessageSettings.channelRed,
+    [MessageModes.AnonymousMessage] = MessageSettings.privateRed,
 
     [MessageModes.DamageDealed] = MessageSettings.statusOwn,
     [MessageModes.DamageReceived] = MessageSettings.statusOwn,

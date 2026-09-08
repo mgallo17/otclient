@@ -16,13 +16,26 @@ SpeakTypesSettings = {
         speakType = MessageModes.GamemasterBroadcast,
         color = '#F55E5E'
     },
+    anonymousBroadcast = {
+        speakType = MessageModes.AnonymousBroadcast,
+        color = '#F55E5E'
+    },
+    anonymousChannel = {
+        speakType = MessageModes.AnonymousChannel,
+        color = '#F55E5E'
+    },
+    anonymousMessage = {
+        speakType = MessageModes.AnonymousMessage,
+        color = '#F55E5E',
+        private = true
+    },
     private = {
         speakType = MessageModes.PrivateTo,
         color = '#5FF7F7',
         private = true
     },
     privateRed = {
-        speakType = MessageModes.GamemasterTo,
+        speakType = MessageModes.GamemasterPrivateTo,
         color = '#F55E5E',
         private = true
     },
@@ -88,6 +101,9 @@ SpeakTypes = {
     [MessageModes.Whisper] = SpeakTypesSettings.whisper,
     [MessageModes.Yell] = SpeakTypesSettings.yell,
     [MessageModes.GamemasterBroadcast] = SpeakTypesSettings.broadcast,
+    [MessageModes.AnonymousBroadcast] = SpeakTypesSettings.anonymousBroadcast,
+    [MessageModes.AnonymousChannel] = SpeakTypesSettings.anonymousChannel,
+    [MessageModes.AnonymousMessage] = SpeakTypesSettings.anonymousMessage,
     [MessageModes.PrivateTo] = SpeakTypesSettings.private,
     [MessageModes.PrivateFrom] = SpeakTypesSettings.private,
     [MessageModes.GamemasterPrivateFrom] = SpeakTypesSettings.privateRed,
@@ -1480,6 +1496,28 @@ function sendMessage(message, tab)
         channel = 0
     end
 
+    -- player anonymous broadcast
+    chatCommandMessage = message:match('^%#[m|M] (.*)')
+    if chatCommandMessage ~= nil then
+        chatCommandSayMode = 'anonymousBroadcast'
+        message = chatCommandMessage
+        channel = 0
+    end
+
+    -- player anonymous channel call
+    chatCommandMessage = message:match('^%#[a|A] (.*)')
+    if chatCommandMessage ~= nil then
+        chatCommandSayMode = 'anonymousChannel'
+        message = chatCommandMessage
+    end
+
+    -- player gamemaster private message
+    chatCommandMessage = message:match('^%#[d|D] (.*)')
+    if chatCommandMessage ~= nil then
+        chatCommandSayMode = 'privateRed'
+        message = chatCommandMessage
+    end
+
     local findIni, findEnd, chatCommandInitial, chatCommandPrivate, chatCommandEnd, chatCommandMessage = message:find(
         '([%*%@])(.+)([%*%@])(.*)')
     if findIni ~= nil and findIni == 1 then -- player used private chat command
@@ -1490,6 +1528,9 @@ function sendMessage(message, tab)
             end
             message = chatCommandMessage:trim()
             chatCommandPrivateReady = true
+            if chatCommandSayMode == 'anonymousBroadcast' or chatCommandSayMode == 'anonymousChannel' then
+                chatCommandSayMode = 'anonymousMessage'
+            end
         end
     end
 
@@ -1519,6 +1560,29 @@ function sendMessage(message, tab)
             speaktypedesc = chatCommandSayMode or 'channelYellow'
         end
 
+        if speaktypedesc == 'anonymousBroadcast' then
+            local proto = g_game.getProtocolGame()
+            if proto then
+                local msg = OutputMessage.create()
+                msg:addU8(150) -- ClientTalk
+                msg:addU8(13)  -- TALK_ANONYMOUS_BROADCAST
+                msg:addString(message)
+                proto:send(msg)
+                return
+            end
+        elseif speaktypedesc == 'anonymousChannel' then
+            local proto = g_game.getProtocolGame()
+            if proto then
+                local msg = OutputMessage.create()
+                msg:addU8(150) -- ClientTalk
+                msg:addU8(14)  -- TALK_ANONYMOUS_CHANNELCALL
+                msg:addU16(channel or 0)
+                msg:addString(message)
+                proto:send(msg)
+                return
+            end
+        end
+
         g_game.talkChannel(SpeakTypesSettings[speaktypedesc].speakType, channel, message)
         return
     else
@@ -1527,7 +1591,13 @@ function sendMessage(message, tab)
         local tabname = name
         local dontAdd = false
         if chatCommandPrivateReady then
-            speaktypedesc = 'privatePlayerToPlayer'
+            if chatCommandSayMode == 'privateRed' then
+                speaktypedesc = 'privateRed'
+            elseif chatCommandSayMode == 'anonymousMessage' then
+                speaktypedesc = 'anonymousMessage'
+            else
+                speaktypedesc = 'privatePlayerToPlayer'
+            end
             name = chatCommandPrivate
             isPrivateCommand = true
         elseif tab.npcChat then
@@ -1545,7 +1615,31 @@ function sendMessage(message, tab)
             name = tab.violationChatName
             tabname = tab.violationChatName .. '\'...'
         else
-            speaktypedesc = 'privatePlayerToPlayer'
+            if chatCommandSayMode == 'privateRed' then
+                speaktypedesc = 'privateRed'
+            elseif chatCommandSayMode == 'anonymousMessage' then
+                speaktypedesc = 'anonymousMessage'
+            else
+                speaktypedesc = 'privatePlayerToPlayer'
+            end
+        end
+
+        if speaktypedesc == 'anonymousMessage' then
+            local proto = g_game.getProtocolGame()
+            if proto then
+                local msg = OutputMessage.create()
+                msg:addU8(150) -- ClientTalk
+                msg:addU8(15)  -- TALK_ANONYMOUS_MESSAGE
+                msg:addString(name)
+                msg:addString(message)
+                proto:send(msg)
+                if not dontAdd then
+                    local player = g_game.getLocalPlayer()
+                    message = applyMessagePrefixies(g_game.getCharacterName(), player:getLevel(), message)
+                    addPrivateText(message, SpeakTypesSettings[speaktypedesc], tabname, isPrivateCommand, g_game.getCharacterName())
+                end
+                return
+            end
         end
 
         local speaktype = SpeakTypesSettings[speaktypedesc]

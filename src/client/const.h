@@ -352,7 +352,11 @@ namespace Otc
         MessageOfflineTrainning = 54,
         MessageTransaction = 55,
         MessagePotion = 56,
-        LastMessage = 57,
+        MessageValuableLoot = 57,
+        MessageAnonymousBroadcast = 58,
+        MessageAnonymousChannel = 59,
+        MessageAnonymousMessage = 60,
+        LastMessage = 61,
         MessageInvalid = 255
     };
 

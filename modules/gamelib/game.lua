@@ -27,7 +27,7 @@ function g_game.chooseRsa(host, port)
     -- (7674) nao batia com o if, o cliente usava a chave errada so nessa etapa,
     -- e ficava preso em "connecting to login server" sem nenhum erro visivel.
     -- Todo ambiente nosso (producao, staging, teste) fica no mesmo host.
-    if host == "100.122.232.250" then
+    if host == "100.122.232.250" or host == "127.0.0.1" or host == "localhost" then
         g_game.setRsa(ZANERA_RSA)
 
         -- O features.lua liga GameTileAddThingWithStackpos para toda versao >= 770,

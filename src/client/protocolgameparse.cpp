@@ -2794,6 +2794,7 @@ void ProtocolGame::parseTalk(const InputMessagePtr& msg)
         case Otc::MessageChannelManagement:
         case Otc::MessageChannelHighlight:
         case Otc::MessageGamemasterChannel:
+        case Otc::MessageAnonymousChannel:
             channelId = msg->getU16();
             break;
         case Otc::MessageNpcFrom:
@@ -2801,6 +2802,8 @@ void ProtocolGame::parseTalk(const InputMessagePtr& msg)
         case Otc::MessagePrivateFrom:
         case Otc::MessageGamemasterBroadcast:
         case Otc::MessageGamemasterPrivateFrom:
+        case Otc::MessageAnonymousBroadcast:
+        case Otc::MessageAnonymousMessage:
         case Otc::MessageRVRAnswer:
         case Otc::MessageRVRContinue:
             break;

@@ -183,7 +183,8 @@ namespace Proto
             messageModesMap[Otc::MessageGamemasterPrivateFrom] = 14;
             messageModesMap[Otc::MessageGamemasterPrivateTo] = 14;
             messageModesMap[Otc::MessageChannelHighlight] = 15;
-            // 16, 17 ??
+            messageModesMap[Otc::MessageAnonymousBroadcast] = 16;
+            messageModesMap[Otc::MessageAnonymousChannel] = 17;
             messageModesMap[Otc::MessageRed] = 18;
             messageModesMap[Otc::MessageMonsterSay] = 19;
             messageModesMap[Otc::MessageMonsterYell] = 20;
@@ -210,7 +211,9 @@ namespace Proto
             messageModesMap[Otc::MessageGamemasterPrivateFrom] = 11;
             messageModesMap[Otc::MessageGamemasterPrivateTo] = 11;
             messageModesMap[Otc::MessageChannelHighlight] = 12;
-            // 13, 14, 15 ??
+            messageModesMap[Otc::MessageAnonymousBroadcast] = 13;
+            messageModesMap[Otc::MessageAnonymousChannel] = 14;
+            messageModesMap[Otc::MessageAnonymousMessage] = 15;
             messageModesMap[Otc::MessageMonsterSay] = 16;
             messageModesMap[Otc::MessageMonsterYell] = 17;
             messageModesMap[Otc::MessageWarning] = 18;
