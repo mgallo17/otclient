@@ -58,18 +58,13 @@ function ProtocolLogin:sendLoginPacket()
         msg:addU8(0)
     end
 
+    -- Zanera (2026-09-18): bloco RSA-2048 OAEP. Comeca aqui: chave XTEA (16) +
+    -- chave do MAC (32) + conta + senha. Sem byte zero inicial nem padding
+    -- manual -- o OAEP cuida disso, e o bloco sai com 256 bytes fixos.
     local offset = msg:getMessageSize()
     if g_game.getFeature(GameLoginPacketEncryption) then
-        -- first RSA byte must be 0
-        msg:addU8(0)
-
-        -- xtea key
-        self:generateXteaKey()
-        local xteaKey = self:getXteaKey()
-        msg:addU32(xteaKey[1])
-        msg:addU32(xteaKey[2])
-        msg:addU32(xteaKey[3])
-        msg:addU32(xteaKey[4])
+        msg:beginRsaBlock()
+        self:addSessionKeys(msg)
     end
 
     if g_game.getFeature(GameAccountNames) then
@@ -85,14 +80,8 @@ function ProtocolLogin:sendLoginPacket()
         msg:addString(data)
     end
 
-    local paddingBytes = g_crypt.rsaGetSize() - (msg:getMessageSize() - offset)
-    assert(paddingBytes >= 0)
-    for i = 1, paddingBytes do
-        msg:addU8(math.random(0, 0xff))
-    end
-
     if g_game.getFeature(GameLoginPacketEncryption) then
-        msg:encryptRsa()
+        msg:encryptRsa() -- OAEP (bloco marcado acima)
     end
 
     if g_game.getFeature(GameOGLInformation) then
@@ -136,6 +125,7 @@ function ProtocolLogin:sendLoginPacket()
 
     if g_game.getFeature(GameLoginPacketEncryption) then
         self:enableXteaEncryption()
+        self:enablePacketMac()
     end
 
     if g_game.getFeature(GameSequencedPackets) then

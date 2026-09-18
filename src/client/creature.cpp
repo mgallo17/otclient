@@ -689,6 +689,26 @@ void Creature::updateWalkAnimation()
         return;
     }
 
+    // Protocolo classico (7.x): o cliente original troca o frame das pernas por
+    // DISTANCIA andada, nao por tempo. O codigo abaixo (timer + clamp em 205ms)
+    // da ~2 trocas por tile em velocidade de personagem baixo, e o boneco
+    // parece deslizar; o original alterna as pernas varias vezes por tile.
+    // Aqui a fase sai direto de m_walkedPixels (ja calculado em updateWalk).
+    // OTC_WALK_PX = pixels por frame; 8 num tile de 32px = 4 trocas por tile.
+    // Ajustavel por variavel de ambiente para calibrar no olho contra o
+    // cliente original, sem recompilar. 0 desliga e volta ao timer.
+    if (!g_game.getFeature(Otc::GameEnhancedAnimations)) {
+        static const int pixelsPerFrame = [] {
+            const char* v = std::getenv("OTC_WALK_PX");
+            const int n = v ? std::atoi(v) : 8;
+            return n < 0 ? 0 : n;
+        }();
+        if (pixelsPerFrame > 0) {
+            m_walkAnimationPhase = 1 + (m_walkedPixels / pixelsPerFrame) % footAnimPhases;
+            return;
+        }
+    }
+
     int minFootDelay = 20;
     const int maxFootDelay = footAnimPhases > 2 ? 80 : 205;
     int footAnimDelay = footAnimPhases;

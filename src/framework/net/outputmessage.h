@@ -52,6 +52,12 @@ public:
     void prependU8(uint8_t value);
     void prependU16(uint16_t value);
 
+    /* Zanera (2026-09-18): bloco RSA-2048 OAEP. `beginRsaBlock()` marca onde
+     * comeca o texto claro; `encryptRsa()` com bloco marcado cifra tudo dali
+     * ate o fim num bloco de 256 bytes (crescendo a mensagem). Sem marca,
+     * cai no comportamento antigo (textbook, in place), que outros protocolos
+     * do OTClient ainda usam. */
+    void beginRsaBlock() { m_rsaBlockStart = m_writePos; }
     void encryptRsa();
 
     uint16_t getWritePos() { return m_writePos; }
@@ -84,5 +90,6 @@ private:
     uint16_t m_headerPos{ m_maxHeaderSize };
     uint16_t m_writePos{ m_maxHeaderSize };
     uint16_t m_messageSize{ 0 };
+    int m_rsaBlockStart{ -1 };
     uint8_t m_buffer[BUFFER_MAXSIZE];
 };

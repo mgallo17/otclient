@@ -68,6 +68,13 @@ public:
     std::vector<uint32_t > getXteaKey() { return { m_xteaKey.begin(), m_xteaKey.end() }; }
     void enableXteaEncryption() { m_xteaEncryptionEnabled = true; }
 
+    /* Zanera (2026-09-18): MAC por pacote. `addSessionKeys` gera a chave XTEA
+     * e a chave do MAC e escreve as duas (16 + 32 bytes crus) na mensagem --
+     * e' o comeco do bloco RSA-OAEP do login. `enablePacketMac` liga a
+     * verificacao/anexo do MAC nos pacotes seguintes (junto com o XTEA). */
+    void addSessionKeys(const OutputMessagePtr& msg);
+    void enablePacketMac() { m_macEnabled = true; m_macSeqIn = 0; m_macSeqOut = 0; }
+
     void enableChecksum() { m_checksumEnabled = true; }
     void enabledSequencedPackets() { m_sequencedPackets = true; }
 
@@ -90,6 +97,10 @@ protected:
 
     std::array<uint32_t, 4> m_xteaKey{};
     uint32_t m_packetNumber{ 0 };
+    std::array<uint8_t, 32> m_macKey{};
+    uint32_t m_macSeqIn{ 0 };
+    uint32_t m_macSeqOut{ 0 };
+    bool m_macEnabled{ false };
 
     PacketPlayerPtr m_player;
     PacketRecorderPtr m_recorder;

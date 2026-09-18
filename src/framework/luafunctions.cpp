@@ -1032,6 +1032,8 @@ void Application::registerLuaFunctions()
     g_lua.bindClassMemberFunction<Protocol>("getXteaKey", &Protocol::getXteaKey);
     g_lua.bindClassMemberFunction<Protocol>("generateXteaKey", &Protocol::generateXteaKey);
     g_lua.bindClassMemberFunction<Protocol>("enableXteaEncryption", &Protocol::enableXteaEncryption);
+    g_lua.bindClassMemberFunction<Protocol>("addSessionKeys", &Protocol::addSessionKeys);
+    g_lua.bindClassMemberFunction<Protocol>("enablePacketMac", &Protocol::enablePacketMac);
     g_lua.bindClassMemberFunction<Protocol>("enabledSequencedPackets", &Protocol::enabledSequencedPackets);
     g_lua.bindClassMemberFunction<Protocol>("enableChecksum", &Protocol::enableChecksum);
 
@@ -1070,6 +1072,7 @@ void Application::registerLuaFunctions()
     g_lua.bindClassMemberFunction<OutputMessage>("addBytes", &OutputMessage::addBytes);
     g_lua.bindClassMemberFunction<OutputMessage>("addPaddingBytes", &OutputMessage::addPaddingBytes);
     g_lua.bindClassMemberFunction<OutputMessage>("encryptRsa", &OutputMessage::encryptRsa);
+    g_lua.bindClassMemberFunction<OutputMessage>("beginRsaBlock", &OutputMessage::beginRsaBlock);
     g_lua.bindClassMemberFunction<OutputMessage>("getMessageSize", &OutputMessage::getMessageSize);
     g_lua.bindClassMemberFunction<OutputMessage>("setMessageSize", &OutputMessage::setMessageSize);
     g_lua.bindClassMemberFunction<OutputMessage>("getWritePos", &OutputMessage::getWritePos);
