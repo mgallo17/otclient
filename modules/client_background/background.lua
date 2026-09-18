@@ -10,16 +10,16 @@ function init()
     background = g_ui.displayUI('background')
     background:lower()
 
+    -- Fundo classico do 7.72: sem selo de versao do OTClient nem o efeito de
+    -- particulas/brilho (era pra mostrar credito de build do fork, nao faz
+    -- parte da tela original). clientVersionLabel/particles continuam
+    -- existindo no .otui (outros modulos podem referenciar), so ficam ocultos.
     clientVersionLabel = background:getChildById('clientVersionLabel')
-    clientVersionLabel:setText(g_app.getName() .. ' ' .. g_app.getVersion() .. '\n' .. 'Rev  ' ..
-                                   g_app.getBuildRevision() .. ' (' .. g_app.getBuildCommit() .. ')\n' .. 'Built on ' ..
-                                   g_app.getBuildDate() .. '\n' .. g_app.getBuildCompiler() .. ' - ' ..
-                                   g_app.getBuildArch())
+    clientVersionLabel:hide()
 
-    if not g_game.isOnline() then
-        addEvent(function()
-            g_effects.fadeIn(clientVersionLabel, 1500)
-        end)
+    local particlesWidget = background:getChildById('particles')
+    if particlesWidget then
+        particlesWidget:hide()
     end
 
     connect(g_game, {
@@ -28,7 +28,6 @@ function init()
     connect(g_game, {
         onGameEnd = show
     })
-    startBackgroundEffectLoop() -- start the background effect loop
 end
 
 function terminate()
@@ -60,7 +59,7 @@ end
 
 function show()
     background:show()
-    startBackgroundEffectLoop()
+    -- (efeito de particulas desligado de proposito, ver init())
 end
 
 function hideVersionLabel()

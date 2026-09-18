@@ -80,16 +80,13 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     const int offset = msg->getMessageSize();
 
     if (g_game.getFeature(Otc::GameLoginPacketEncryption)) {
-        // first RSA byte must be 0
-        msg->addU8(0);
-        // xtea key
-        generateXteaKey();
-        msg->addU32(m_xteaKey[0]);
-        msg->addU32(m_xteaKey[1]);
-        msg->addU32(m_xteaKey[2]);
-        msg->addU32(m_xteaKey[3]);
+        /* Zanera (2026-09-18): bloco RSA-2048 OAEP. Comeca aqui: chave XTEA
+         * (16) + chave do MAC (32); sem byte zero inicial nem padding manual,
+         * o OAEP cuida disso e o bloco sai com 256 bytes fixos. */
+        msg->beginRsaBlock();
+        addSessionKeys(msg);
 
-        /* 7.7: SO e versao vao aqui dentro, logo depois da chave XTEA. */
+        /* 7.7: SO e versao vao aqui dentro, logo depois das chaves. */
         if (osVersionInsideRsa) {
             msg->addU16(g_game.getOs());
             msg->addU16(g_game.getProtocolVersion());
@@ -124,12 +121,8 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     if (!extended.empty())
         msg->addString(extended);
 
-    // complete the bytes for rsa encryption with zeros
-    const int paddingBytes = g_crypt.rsaGetSize() - (msg->getMessageSize() - offset);
-    assert(paddingBytes >= 0);
-    msg->addPaddingBytes(paddingBytes);
-
-    // encrypt with RSA
+    // encrypt with RSA (OAEP: bloco marcado em beginRsaBlock, sem padding manual)
+    (void)offset;
     if (g_game.getFeature(Otc::GameLoginPacketEncryption))
         msg->encryptRsa();
 
@@ -138,8 +131,10 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
 
     send(msg);
 
-    if (g_game.getFeature(Otc::GameLoginPacketEncryption))
+    if (g_game.getFeature(Otc::GameLoginPacketEncryption)) {
         enableXteaEncryption();
+        enablePacketMac();
+    }
 
     if (g_game.getFeature(Otc::GameSequencedPackets))
         enabledSequencedPackets();

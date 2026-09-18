@@ -34,6 +34,35 @@
 #endif
 #include <framework/net/packet_player.h>
 #include <framework/net/packet_recorder.h>
+#include <openssl/hmac.h>
+#include <openssl/crypto.h>
+
+/* HMAC-SHA256(key, dir(1) || seq(u32 LE) || encSize(u16 LE) || cipher)[0:16]
+ * -- byte a byte igual ao servidor (crypto.cc) e ao login server (crypto.py). */
+static constexpr int PACKET_MAC_SIZE = 16;
+static constexpr uint8_t PACKET_DIR_CLIENT_TO_SERVER = 0x01;
+static constexpr uint8_t PACKET_DIR_SERVER_TO_CLIENT = 0x02;
+
+static void computePacketMac(const std::array<uint8_t, 32>& key, uint8_t dir, uint32_t seq,
+                             const uint8_t* cipher, uint16_t encSize, uint8_t* out16)
+{
+    uint8_t header[7] = {
+        dir,
+        static_cast<uint8_t>(seq), static_cast<uint8_t>(seq >> 8),
+        static_cast<uint8_t>(seq >> 16), static_cast<uint8_t>(seq >> 24),
+        static_cast<uint8_t>(encSize), static_cast<uint8_t>(encSize >> 8),
+    };
+    uint8_t full[EVP_MAX_MD_SIZE];
+    unsigned int fullLen = 0;
+    HMAC_CTX* ctx = HMAC_CTX_new();
+    HMAC_Init_ex(ctx, key.data(), static_cast<int>(key.size()), EVP_sha256(), nullptr);
+    HMAC_Update(ctx, header, sizeof(header));
+    HMAC_Update(ctx, cipher, encSize);
+    HMAC_Final(ctx, full, &fullLen);
+    HMAC_CTX_free(ctx);
+    memcpy(out16, full, PACKET_MAC_SIZE);
+}
+
 
 extern asio::io_service g_ioService;
 
@@ -154,6 +183,16 @@ void Protocol::send(const OutputMessagePtr& outputMessage, bool raw)
         } else {
             outputMessage->writeMessageSize();
         }
+
+        // Zanera: MAC sobre o ciphertext, anexado DEPOIS dele; o tamanho
+        // externo (ja escrito acima) nao inclui os 16 bytes do MAC.
+        if (m_macEnabled && m_xteaEncryptionEnabled) {
+            const uint16_t encSize = outputMessage->getMessageSize() - 2;
+            uint8_t mac[PACKET_MAC_SIZE];
+            computePacketMac(m_macKey, PACKET_DIR_CLIENT_TO_SERVER, m_macSeqOut++,
+                             outputMessage->getHeaderBuffer() + 2, encSize, mac);
+            outputMessage->addBytes(std::string_view(reinterpret_cast<const char*>(mac), PACKET_MAC_SIZE));
+        }
     }
 
     onSend();
@@ -215,6 +254,10 @@ void Protocol::internalRecvHeader(const uint8_t* buffer, const uint16_t size)
         return;
     }
 
+    // Zanera: depois do ciphertext vem o MAC de 16 bytes
+    if (m_macEnabled && m_xteaEncryptionEnabled)
+        remainingSize += PACKET_MAC_SIZE;
+
     // read remaining message data
     if (m_connection)
         m_connection->read(static_cast<uint16_t>(remainingSize), [capture0 = asProtocol()](auto&& PH1, auto&& PH2) {
@@ -231,7 +274,27 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         return;
     }
 
-    m_inputMessage->fillBuffer(buffer, size);
+    // Zanera: verifica o MAC do servidor ANTES de tocar no conteudo. Falhou
+    // = alguem mexeu no fluxo (ou replay/reordenacao): derruba a conexao.
+    uint16_t dataSize = size;
+    if (m_macEnabled && m_xteaEncryptionEnabled) {
+        if (size < PACKET_MAC_SIZE) {
+            g_logger.error("packet MAC missing, disconnecting");
+            disconnect();
+            return;
+        }
+        dataSize = size - PACKET_MAC_SIZE;
+        uint8_t expected[PACKET_MAC_SIZE];
+        computePacketMac(m_macKey, PACKET_DIR_SERVER_TO_CLIENT, m_macSeqIn, buffer, dataSize, expected);
+        if (CRYPTO_memcmp(expected, buffer + dataSize, PACKET_MAC_SIZE) != 0) {
+            g_logger.error("packet MAC mismatch (seq " + std::to_string(m_macSeqIn) + "), disconnecting");
+            disconnect();
+            return;
+        }
+        ++m_macSeqIn;
+    }
+
+    m_inputMessage->fillBuffer(buffer, dataSize);
 
     bool decompress = false;
     if (m_sequencedPackets) {
@@ -314,6 +377,21 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
         m_recorder->addInputPacket(m_inputMessage);
     }
     onRecv(m_inputMessage);
+}
+
+void Protocol::addSessionKeys(const OutputMessagePtr& msg)
+{
+    generateXteaKey();
+    std::random_device rd;
+    std::uniform_int_distribution<int> unif(0, 255);
+    for (auto& b : m_macKey)
+        b = static_cast<uint8_t>(unif(rd));
+
+    // chave XTEA como 4 x u32 little-endian (igual ao que o servidor le com
+    // readQuad), depois os 32 bytes crus da chave do MAC.
+    for (const uint32_t w : m_xteaKey)
+        msg->addU32(w);
+    msg->addBytes(std::string_view(reinterpret_cast<const char*>(m_macKey.data()), m_macKey.size()));
 }
 
 void Protocol::generateXteaKey()

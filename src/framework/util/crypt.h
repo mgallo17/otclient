@@ -40,6 +40,7 @@
 #define OPENSSL_SUPPRESS_DEPRECATED
 #endif
 #include <openssl/rsa.h>
+#include <openssl/evp.h>
 #endif
 
 class Crypt
@@ -68,6 +69,13 @@ public:
     bool rsaDecrypt(uint8_t* msg, int size);
     int rsaGetSize();
 
+    /* Zanera (2026-09-18): RSA-2048 OAEP-SHA256 (hash e MGF1). Cifra `inLen`
+     * bytes de `in` num bloco de exatamente `rsaOaepGetSize()` bytes em `out`.
+     * Independe de USE_GMP: usa a chave publica (n, e) guardada por
+     * rsaSetPublicKey via OpenSSL. */
+    bool rsaEncryptOaep(const uint8_t* in, int inLen, uint8_t* out, int outLen);
+    int rsaOaepGetSize();
+
     std::string crc32(const std::string& decoded_string, bool upperCase);
 
 private:
@@ -82,6 +90,7 @@ private:
 #else
     RSA* m_rsa;
 #endif
+    EVP_PKEY* m_rsaOaep{ nullptr };   // chave publica para OAEP (sempre OpenSSL)
 };
 
 extern Crypt g_crypt;

@@ -51,6 +51,8 @@
 #endif
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
 #endif
 
 constexpr std::size_t CHECKSUM_BYTES = sizeof(uint32_t);
@@ -72,6 +74,10 @@ Crypt::Crypt()
 
 Crypt::~Crypt()
 {
+    if (m_rsaOaep) {
+        EVP_PKEY_free(m_rsaOaep);
+        m_rsaOaep = nullptr;
+    }
 #ifdef USE_GMP
     mpz_clear(m_p);
     mpz_clear(m_q);
@@ -192,6 +198,46 @@ void Crypt::rsaSetPublicKey(const std::string& n, const std::string& e)
     BN_dec2bn(&be, e.data());
     RSA_set0_key(m_rsa, bn, be, nullptr);
 #endif
+
+    // Chave para OAEP (sempre via OpenSSL, mesmo com USE_GMP).
+    if (m_rsaOaep) {
+        EVP_PKEY_free(m_rsaOaep);
+        m_rsaOaep = nullptr;
+    }
+    BIGNUM* on = nullptr, * oe = nullptr;
+    BN_dec2bn(&on, n.data());
+    BN_dec2bn(&oe, e.data());
+    RSA* rsa = RSA_new();
+    RSA_set0_key(rsa, on, oe, nullptr);
+    m_rsaOaep = EVP_PKEY_new();
+    EVP_PKEY_assign_RSA(m_rsaOaep, rsa); // m_rsaOaep passa a ser dono de rsa
+}
+
+int Crypt::rsaOaepGetSize()
+{
+    return m_rsaOaep ? EVP_PKEY_size(m_rsaOaep) : 0;
+}
+
+bool Crypt::rsaEncryptOaep(const uint8_t* in, int inLen, uint8_t* out, int outLen)
+{
+    if (!m_rsaOaep || outLen != rsaOaepGetSize())
+        return false;
+
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(m_rsaOaep, nullptr);
+    if (!ctx)
+        return false;
+
+    size_t written = static_cast<size_t>(outLen);
+    const bool ok = EVP_PKEY_encrypt_init(ctx) > 0
+        && EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) > 0
+        && EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) > 0
+        && EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) > 0
+        && EVP_PKEY_encrypt(ctx, out, &written, in, static_cast<size_t>(inLen)) > 0
+        && written == static_cast<size_t>(outLen);
+    if (!ok)
+        ERR_clear_error();
+    EVP_PKEY_CTX_free(ctx);
+    return ok;
 }
 
 void Crypt::rsaSetPrivateKey(const std::string& p, const std::string& q, const std::string& d)

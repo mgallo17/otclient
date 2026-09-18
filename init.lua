@@ -10,20 +10,25 @@ Services = {
     --getCoinsUrl = "http://localhost/?subtopic=shop&step=terms", --./game_market
 }
 
---[[
+-- Servidores padrao do nosso projeto (openclaw, 100.122.232.250). Com mais
+-- de uma entrada aqui o botao "server list" da tela de login fica visivel
+-- (EnterGame.setUniqueServer, chamado so quando ha exatamente 1 entrada,
+-- some com ele) -- clique nele pra trocar entre os dois. Cada um so entra
+-- na lista salva (client_serverlist/serverlist.lua) na PRIMEIRA vez que o
+-- cliente abre com um `.otclient/settings` novo; depois disso e o usuario
+-- quem edita/remove pela propria tela.
 Servers_init = {
-    ["http://127.0.0.1/login.php"] = {
-        ["port"] = 80,
-        ["protocol"] = 1320,
-        ["httpLogin"] = true
+    ["100.122.232.250 (Tibia 7.72 - Zanera/Tenebra)"] = {
+        ["port"] = 7272,       -- login server (qm/loginserver.py); porta do jogo (7273/7274) vem na resposta
+        ["protocol"] = 772,
+        ["httpLogin"] = false
     },
-    ["ip.net"] = {
+    ["100.122.232.250 (Canary 15.11)"] = {
         ["port"] = 7171,
-        ["protocol"] = 860,
+        ["protocol"] = 1511,
         ["httpLogin"] = false
     },
 }
-]]
 
 g_app.setName("OTClient - Redemption");
 g_app.setCompactName("otclient");

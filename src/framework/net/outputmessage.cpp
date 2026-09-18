@@ -33,6 +33,7 @@ OutputMessage::OutputMessage() {
 
 void OutputMessage::reset()
 {
+    m_rsaBlockStart = -1;
     m_maxHeaderSize = g_game.getClientVersion() >= 1405 ? 7 : 8;
     m_writePos = m_maxHeaderSize;
     m_headerPos = m_maxHeaderSize;
@@ -114,6 +115,25 @@ void OutputMessage::addPaddingBytes(const int bytes, const uint8_t byte)
 
 void OutputMessage::encryptRsa()
 {
+    if (m_rsaBlockStart >= 0) {
+        // OAEP: texto claro = [m_rsaBlockStart, m_writePos), sai um bloco fixo.
+        const int plainLen = m_writePos - m_rsaBlockStart;
+        const int blockLen = g_crypt.rsaOaepGetSize();
+        if (plainLen <= 0 || blockLen <= 0)
+            throw stdext::exception("rsa oaep: empty block or no public key");
+        uint8_t block[512];
+        if (blockLen > static_cast<int>(sizeof(block)))
+            throw stdext::exception("rsa oaep: key too large");
+        if (!g_crypt.rsaEncryptOaep(m_buffer + m_rsaBlockStart, plainLen, block, blockLen))
+            throw stdext::exception("rsa oaep encryption failed");
+        checkWrite(blockLen - plainLen);
+        memcpy(m_buffer + m_rsaBlockStart, block, blockLen);
+        m_writePos = m_rsaBlockStart + blockLen;
+        m_messageSize += (blockLen - plainLen);
+        m_rsaBlockStart = -1;
+        return;
+    }
+
     const int size = g_crypt.rsaGetSize();
     if (m_messageSize < size)
         throw stdext::exception("insufficient bytes in buffer to encrypt");
