@@ -139,9 +139,18 @@ function mapController:onGameStart()
     if otmm and not g_resources.fileExists(minimapFile) then
         local defaultMinimap = '/default_minimap.otmm'
         if g_resources.fileExists(defaultMinimap) then
-            pcall(function()
-                g_resources.writeFileContents(minimapFile, g_resources.readFileContents(defaultMinimap))
+            local ok, err = pcall(function()
+                local data = g_resources.readFileContents(defaultMinimap)
+                g_resources.writeFileContents(minimapFile, data)
+                return #data
             end)
+            if ok then
+                g_logger.info('Seeded ' .. minimapFile .. ' from ' .. defaultMinimap)
+            else
+                g_logger.warning('Failed to seed minimap: ' .. tostring(err))
+            end
+        else
+            g_logger.info('No ' .. defaultMinimap .. ' bundled, skipping seed')
         end
     end
 
@@ -149,9 +158,22 @@ function mapController:onGameStart()
         local ok, err = pcall(loadFnc, minimapFile)
         if not ok then
             g_logger.warning('Failed to load minimap: ' .. tostring(err))
+        else
+            g_logger.info('Loaded minimap from ' .. minimapFile)
         end
-    elseif not minimapImported then
-        -- Import minimap images from tibiamaps.io if available (only once per session)
+    end
+
+    -- Vetusia (2026-09-19): importa os PNGs do tibiamaps.io (data/
+    -- minimap_import/, cobrem o mapa inteiro) UMA vez por instalacao,
+    -- SEMPRE -- nao so' quando nao existe /minimap.otmm. Foi exatamente
+    -- assim que o mapa completo apareceu no Mac (commit ab53cf9, "import-
+    -- once logic"). A importacao e' aditiva: loadImage so' pinta tile que
+    -- ainda nao tem MinimapTileWasSeen, entao o que ja veio do .otmm (seu
+    -- ou o default semeado acima) fica intacto e so' os buracos sao
+    -- preenchidos. Marcador em arquivo (nao so' variavel de sessao) pra
+    -- nao repetir os ~2000 PNGs a cada abertura.
+    local importMarker = '/minimap_imported.flag'
+    if otmm and not minimapImported and not g_resources.fileExists(importMarker) then
         local importDir = '/data/minimap_import'
         if g_resources.directoryExists(importDir) then
             local files = g_resources.listDirectoryFiles(importDir)
@@ -164,15 +186,14 @@ function mapController:onGameStart()
                     count = count + 1
                 end
             end
+            g_logger.info('Imported ' .. count .. ' minimap tiles from tibiamaps.io')
             if count > 0 then
-                g_logger.info('Imported ' .. count .. ' minimap tiles from tibiamaps.io')
-                if otmm then
-                    g_minimap.saveOtmm('/minimap.otmm')
-                    g_logger.info('Saved minimap as /minimap.otmm')
-                end
+                g_minimap.saveOtmm(minimapFile)
+                g_logger.info('Saved minimap as ' .. minimapFile)
             end
-            minimapImported = true
+            pcall(function() g_resources.writeFileContents(importMarker, tostring(count)) end)
         end
+        minimapImported = true
     end
 
     self.ui.minimapBorder.minimap:load()
