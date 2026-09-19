@@ -225,14 +225,14 @@ function EnterGame.init()
 end
 
 function EnterGame.hidePanels()
-    if g_modules.getModule("client_bottommenu"):isLoaded()  then
+    if (g_modules.getModule("client_bottommenu") and g_modules.getModule("client_bottommenu"):isLoaded())  then
         modules.client_bottommenu.hide()
     end
     modules.client_topmenu.hide()
 end
 
 function EnterGame.showPanels()
-    if g_modules.getModule("client_bottommenu"):isLoaded()  then
+    if (g_modules.getModule("client_bottommenu") and g_modules.getModule("client_bottommenu"):isLoaded())  then
         modules.client_bottommenu.show()
     end
     modules.client_topmenu.show()
@@ -255,7 +255,7 @@ function EnterGame.firstShow()
     end
 
     if Services and Services.status then
-        if g_modules.getModule("client_bottommenu"):isLoaded()  then
+        if (g_modules.getModule("client_bottommenu") and g_modules.getModule("client_bottommenu"):isLoaded())  then
             EnterGame.postCacheInfo()
             EnterGame.postEventScheduler()
             -- EnterGame.postShowOff() -- myacc/znote no send login.php
