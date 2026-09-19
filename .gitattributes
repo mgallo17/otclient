@@ -1,6 +1,27 @@
 # Normalize source code before commits
-*.lua eol=lf 
-*.txt eol=lf 
-*.ot* eol=lf 
-*.cpp eol=lf 
-*.h   eol=lf 
+*.lua  eol=lf
+*.txt  eol=lf
+*.cpp  eol=lf
+*.h    eol=lf
+# So' os formatos de TEXTO do OTClient -- NAO usar "*.ot*": esse curinga
+# tambem pegava .otmm (minimapa) e .otb (itens), que sao binarios, e o
+# eol=lf convertia bytes dentro deles a cada git add. Resultado real
+# (2026-09-19): default_minimap.otmm chegou corrompido em todo build do
+# Windows/Android -- loadOtmm para no primeiro bloco invalido e devolve o
+# mapa parcial, sem nenhum erro. O Mac so' escapou porque usava a copia
+# direta do disco, sem passar pelo git.
+*.otml eol=lf
+*.otui eol=lf
+*.otmod eol=lf
+*.otfont eol=lf
+# Binarios: git nunca deve tocar
+*.otmm binary
+*.otb  binary
+*.dat  binary
+*.spr  binary
+*.png  binary
+*.gif  binary
+*.ogg  binary
+*.icns binary
+*.ico  binary
+*.webp binary
