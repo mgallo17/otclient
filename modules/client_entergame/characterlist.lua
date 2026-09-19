@@ -45,10 +45,11 @@ local function tryLogin(charInfo, tries)
 
     CharacterList.hide()
 
-    if g_app.getOs() == 'mac' then
-        -- O servidor 7.7 original so aceita os <= 2 (HandleLogin rejeita o resto com
-        -- "Your terminal version is too old"), entao 11 (CLIENTOS_OTCLIENT_WINDOWS)
-        -- nao serve. Original: g_game.setCustomOs(11)
+    if g_app.getOs() ~= 'windows' and g_app.getOs() ~= 'linux' then
+        -- O servidor 7.7 original (bin/game leakado) so' aceita os <= 2
+        -- (HandleLogin rejeita o resto com "Your terminal version is too
+        -- old"), entao o id real do OTClient pra mac/android (11, 13, etc,
+        -- CLIENTOS_OTCLIENT_*) nao serve -- so' Linux(1) ou Windows(2).
         g_game.setCustomOs(OsTypes.Windows) -- 2
     end
 
