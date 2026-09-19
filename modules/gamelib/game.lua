@@ -27,7 +27,13 @@ function g_game.chooseRsa(host, port)
     -- (7674) nao batia com o if, o cliente usava a chave errada so nessa etapa,
     -- e ficava preso em "connecting to login server" sem nenhum erro visivel.
     -- Todo ambiente nosso (producao, staging, teste) fica no mesmo host.
-    if host == "100.122.232.250" or host == "127.0.0.1" or host == "localhost" then
+    -- 82.70.89.193 = IP publico (Oracle Cloud, o que o cliente empacotado
+    -- usa de verdade desde 2026-09-19); 100.122.232.250 = Meshnet (uso
+    -- interno/teste). Faltou o IP publico aqui quando abrimos pra
+    -- internet -- o cliente conectava sem erro visivel mas usava a chave
+    -- RSA errada (ou nenhuma), estourando "rsa oaep encryption failed"
+    -- ou MAC de pacote invalido.
+    if host == "82.70.89.193" or host == "100.122.232.250" or host == "127.0.0.1" or host == "localhost" then
         g_game.setRsa(ZANERA_RSA)
 
         -- O features.lua liga GameTileAddThingWithStackpos para toda versao >= 770,
