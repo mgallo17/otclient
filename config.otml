@@ -3,9 +3,6 @@ showFps: true
 drawEffectOnTop: false
 vsync: true
 asyncTxtLoading: false
-creatureInformationScale: 0
-staticTextScale: 0
-animatedTextScale: 0
 classicControl: true
 smartLeftClick: false
 showLeftPanel: true
@@ -63,7 +60,6 @@ showLootMessagesOnScreen: true
 showHighlightedUnderline: false
 lootControlMode: 0
 antialiasingMode: 1
-hudScale: 0
 floorViewMode: 0
 showLeftExtraPanel: false
 openMaximized: true
