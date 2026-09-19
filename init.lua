@@ -17,22 +17,26 @@ Services = {
 -- na lista salva (client_serverlist/serverlist.lua) na PRIMEIRA vez que o
 -- cliente abre com um `.otclient/settings` novo; depois disso e o usuario
 -- quem edita/remove pela propria tela.
+-- Vetusia (2026-09-19): UM unico servidor de proposito. Com Servers_init
+-- tendo so uma entrada, entergame.lua chama EnterGame.setUniqueServer()
+-- sozinho (ver "if Servers_init then if table.size(Servers_init) == 1
+-- then ..."), que esconde os campos de host/porta -- ninguem consegue
+-- digitar outro endereco, o cliente so fala com o Vetusia.
 Servers_init = {
-    ["100.122.232.250 (Tibia 7.72 - Zanera/Tenebra)"] = {
-        ["port"] = 7272,       -- login server (qm/loginserver.py); porta do jogo (7273/7274) vem na resposta
+    -- IMPORTANTE: a CHAVE desta tabela e' o host de verdade usado pra
+    -- conectar (entergame.lua le com next(Servers_init) e manda direto
+    -- pro campo de host) -- nao e' so' um rotulo. IP publico da Oracle
+    -- (VNIC, ephemeral) reservado pro jogo; ver docs/decisoes-e-analises.md.
+    ["82.70.89.193"] = {
+        ["port"] = 7272,       -- login server (qm/loginserver.py); a porta do mundo (7273/7274/7275) vem na resposta
         ["protocol"] = 772,
-        ["httpLogin"] = false
-    },
-    ["100.122.232.250 (Canary 15.11)"] = {
-        ["port"] = 7171,
-        ["protocol"] = 1511,
         ["httpLogin"] = false
     },
 }
 
-g_app.setName("OTClient - Redemption");
-g_app.setCompactName("otclient");
-g_app.setOrganizationName("otcr");
+g_app.setName("Vetusia");
+g_app.setCompactName("vetusia");
+g_app.setOrganizationName("vetusia");
 
 g_app.hasUpdater = function()
     return (Services.updater and Services.updater ~= "" and g_modules.getModule("updater"))

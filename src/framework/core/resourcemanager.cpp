@@ -56,8 +56,18 @@ void ResourceManager::terminate()
 
 bool ResourceManager::discoverWorkDir(const std::string& existentFile)
 {
-    // search for modules directory
-    std::string possiblePaths[] = { g_platform.getCurrentDir(),
+    // Vetusia (2026-09-19): "portable de arquivo unico". PhysFS mount()
+    // funciona igual em um diretorio OU num arquivo de arquivo (zip, etc);
+    // ele detecta o formato pelo CONTEUDO, nao pela extensao, e um leitor
+    // de zip acha o diretorio central procurando do FIM do arquivo pra
+    // tras -- por isso funciona mesmo com dados arbitrarios (o proprio
+    // executavel) antes do zip. O pacote de build concatena um .zip com
+    // data/+modules/+mods/+init.lua no fim do binario compilado; aqui a
+    // gente so' tenta montar o proprio binario como mais uma fonte, antes
+    // de desistir e cair nos caminhos de diretorio de sempre (build sem
+    // esse zip anexado, ex.: rodando direto da arvore fonte em dev).
+    std::string possiblePaths[] = { m_binaryPath.string(),
+                                    g_platform.getCurrentDir(),
                                     g_resources.getBaseDir(),
                                     g_resources.getBaseDir() + "/game_data/",
                                     g_resources.getBaseDir() + "../",
@@ -70,7 +80,14 @@ bool ResourceManager::discoverWorkDir(const std::string& existentFile)
 
         if (PHYSFS_exists(existentFile.c_str())) {
             g_logger.debug("Found work dir at '{}'", dir);
-            m_workDir = dir;
+            // Vetusia: quando a fonte e' o proprio binario (arquivo unico),
+            // 'data'/'modules'/'mods' ja ficam visiveis na RAIZ da arvore
+            // virtual montada -- nao sao subpastas de um caminho real em
+            // disco. Um workDir vazio faz getWorkDir()+'data' virar so'
+            // 'data', que e' o nome certo dentro do arquivo montado (ao
+            // inves de concatenar o caminho do binario, que nao existe
+            // como diretorio separado).
+            m_workDir = (dir == m_binaryPath.string()) ? "" : dir;
             found = true;
             break;
         }

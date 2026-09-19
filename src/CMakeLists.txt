@@ -49,6 +49,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # *****************************************************************************
 if (MSVC)
   add_executable(${PROJECT_NAME} "" ../cmake/icon/otcicon.rc)
+  # Vetusia (2026-09-19): sem console -- toda a saida ja vai pro
+  # vetusia.log (ver init.lua/g_logger.setLogFile), entao a janela de
+  # console do Windows so' atrapalha o "arquivo unico portable". O codigo
+  # continua com `int main(argc, argv)` normal (nao WinMain), entao alem
+  # de /SUBSYSTEM:WINDOWS precisamos apontar o entry point de volta pra
+  # mainCRTStartup -- senao o linker procura WinMain e falha.
+  set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+  target_link_options(${PROJECT_NAME} PRIVATE "/ENTRY:mainCRTStartup")
 elseif(ANDROID)
   add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 else()
