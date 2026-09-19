@@ -16,7 +16,6 @@ setEffectAlphaScroll: 100
 setMissileAlphaScroll: 100
 distFromCenScrollbar: 0
 fullscreen: false
-rightJoystick: false
 showExpiryInInvetory: true
 showExpiryInContainers: true
 showDragIcon: true
