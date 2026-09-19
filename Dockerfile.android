@@ -35,9 +35,10 @@ RUN git clone --depth 1 https://github.com/LuaJIT/LuaJIT.git /otclient/luajit-sr
     && git checkout d0e88930ddde28ff662503f9f20facf34f7265aa
 RUN cd /otclient && chmod +x build_luajit_android.sh && ./build_luajit_android.sh
 
-# Generate data.zip asset bundle
+# Generate data.zip asset bundle -- mesmo conteudo dos outros clientes
+# (Windows/Linux/macOS), pra minimap e preferencias default virem iguais.
 RUN mkdir -p /otclient/android/app/src/main/assets \
-    && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua
+    && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua minimap.otmm config.otml
 
 # Build APK inside the image (debug - no signing required)
 RUN cd /otclient/android \
