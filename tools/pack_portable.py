@@ -42,7 +42,13 @@ import zipfile
 
 # So' o que o cliente realmente le em runtime (ver discoverWorkDir e os
 # modulos) -- nada de fonte C++, build/, .git, etc.
-INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua"]
+INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua", "minimap.otmm"]
+
+# O binario compilado se chama "otclient"/"otclient.exe" (CMakeLists.txt
+# ainda usa project(otclient), sem trocar isso o executavel que o
+# jogador ve continuaria com o nome errado -- renomeado aqui na hora de
+# empacotar, mesma ideia do pack_macos_app.py.
+EXECUTABLE_NAME = "vetusia"
 
 
 def build_folder(binary: str, data_dir: str, out_dir: str):
@@ -50,7 +56,8 @@ def build_folder(binary: str, data_dir: str, out_dir: str):
         shutil.rmtree(out_dir)
     os.makedirs(out_dir)
 
-    binary_name = os.path.basename(binary)
+    ext = os.path.splitext(binary)[1]  # .exe no Windows, vazio no Linux
+    binary_name = EXECUTABLE_NAME + ext
     dest_binary = os.path.join(out_dir, binary_name)
     shutil.copy2(binary, dest_binary)
     if os.name != "nt":
