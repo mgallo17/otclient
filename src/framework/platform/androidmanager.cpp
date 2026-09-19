@@ -26,6 +26,8 @@
 #include <framework/core/unzipper.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/sound/soundmanager.h>
+#include <filesystem>
+#include <fstream>
 
 AndroidManager g_androidManager;
 
@@ -117,11 +119,6 @@ void AndroidManager::setClipboardText(const std::string& text) {
 void AndroidManager::unZipAssetData() {
     std::string destFolder = getAppBaseDir() + "/game_data/";
 
-    const std::filesystem::path initLua { destFolder + "init.lua" };
-    if (std::filesystem::exists(initLua)) {
-        return;
-    }
-
     AAsset* dataAsset = AAssetManager_open(
             m_app->activity->assetManager,
             "data.zip",
@@ -133,6 +130,31 @@ void AndroidManager::unZipAssetData() {
     }
 
     auto dataFileLength = AAsset_getLength(dataAsset);
+
+    // Extrai de novo sempre que o data.zip empacotado no APK mudar de
+    // tamanho (proxy simples de "versao"), nao so' na primeira execucao --
+    // sem isso, um dispositivo que ja tinha uma build antiga instalada
+    // (com things/ mais velho, por exemplo) ficava preso pra sempre nos
+    // dados extraidos daquela vez, mesmo depois de atualizar o APK.
+    const std::filesystem::path marker { destFolder + ".data_zip_size" };
+    const std::filesystem::path initLua { destFolder + "init.lua" };
+    bool upToDate = false;
+    if (std::filesystem::exists(initLua) && std::filesystem::exists(marker)) {
+        std::ifstream markerFile(marker);
+        long long storedSize = -1;
+        if (markerFile >> storedSize) {
+            upToDate = (storedSize == static_cast<long long>(dataFileLength));
+        }
+    }
+
+    if (upToDate) {
+        AAsset_close(dataAsset);
+        return;
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all(destFolder, ec);
+
     char* dataContent = (char *) malloc(dataFileLength + 1);
     AAsset_read(dataAsset, dataContent, dataFileLength);
     dataContent[dataFileLength] = '\0';
@@ -141,6 +163,9 @@ void AndroidManager::unZipAssetData() {
 
     AAsset_close(dataAsset);
     free(dataContent);
+
+    std::ofstream markerFile(marker);
+    markerFile << dataFileLength;
 }
 
 std::string AndroidManager::getAppBaseDir() {
