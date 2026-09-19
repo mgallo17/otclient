@@ -1,3 +1,36 @@
 *
 !/README.txt
 !.gitignore
+# client_mods (o mod loader em si) e' carregado com ensureModuleLoaded()
+# em init.lua -- FATAL se faltar, nao e' realmente opcional apesar de
+# morar em mods/. load-later dele tambem exige estas outras 5 pastas.
+# (2026-09-19: build limpo do Windows Actions travava com "FATAL ERROR:
+# Unable to load 'client_mods' module" -- so' funcionava em builds locais
+# porque essas pastas ja estavam soltas no disco de quem compilou.)
+!/client_mods/
+!/client_mods/**
+!/client_profiles/
+!/client_profiles/**
+!/client_textedit/
+!/client_textedit/**
+!/game_bot/
+!/game_bot/**
+!/game_buttons/
+!/game_buttons/**
+!/game_itemselector/
+!/game_itemselector/**
+# client_mods (o mod loader em si) e' carregado com ensureModuleLoaded()
+# em init.lua -- FATAL se faltar, nao e' realmente opcional apesar de
+# morar em mods/. load-later dele tambem exige estas outras 5 pastas.
+!/client_mods/
+!/client_mods/**
+!/client_profiles/
+!/client_profiles/**
+!/client_textedit/
+!/client_textedit/**
+!/game_bot/
+!/game_bot/**
+!/game_buttons/
+!/game_buttons/**
+!/game_itemselector/
+!/game_itemselector/**
