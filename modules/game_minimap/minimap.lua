@@ -127,6 +127,24 @@ function mapController:onGameStart()
         loadFnc = g_map.loadOtcm
     end
 
+    -- Vetusia (2026-09-19): semeia o minimapa pre-explorado (empacotado
+    -- como /default_minimap.otmm, fora do nome que o jogo procura) na
+    -- primeira execucao. Sem isso, se o arquivo padrao morasse direto em
+    -- /minimap.otmm ele ficaria montado com PRIORIDADE MAIOR que o
+    -- diretorio de escrita do usuario (addSearchPath do workdir e' com
+    -- pushFront=true, o do write dir nao e') -- toda vez que o jogador
+    -- explorasse e saisse, o save ia pro write dir normalmente, mas a
+    -- PROXIMA leitura sempre achava a copia estatica primeiro e ignorava
+    -- o progresso salvo, dando a impressao de "o mapa sempre reseta".
+    if otmm and not g_resources.fileExists(minimapFile) then
+        local defaultMinimap = '/default_minimap.otmm'
+        if g_resources.fileExists(defaultMinimap) then
+            pcall(function()
+                g_resources.writeFileContents(minimapFile, g_resources.readFileContents(defaultMinimap))
+            end)
+        end
+    end
+
     if g_resources.fileExists(minimapFile) then
         local ok, err = pcall(loadFnc, minimapFile)
         if not ok then

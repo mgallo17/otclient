@@ -38,7 +38,7 @@ RUN cd /otclient && chmod +x build_luajit_android.sh && ./build_luajit_android.s
 # Generate data.zip asset bundle -- mesmo conteudo dos outros clientes
 # (Windows/Linux/macOS), pra minimap e preferencias default virem iguais.
 RUN mkdir -p /otclient/android/app/src/main/assets \
-    && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua minimap.otmm config.otml
+    && cd /otclient && zip -r android/app/src/main/assets/data.zip data mods modules init.lua otclientrc.lua default_minimap.otmm config.otml
 
 # Build APK inside the image (debug - no signing required)
 RUN cd /otclient/android \
