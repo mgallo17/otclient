@@ -67,6 +67,18 @@ bool ResourceManager::discoverWorkDir(const std::string& existentFile)
     // de desistir e cair nos caminhos de diretorio de sempre (build sem
     // esse zip anexado, ex.: rodando direto da arvore fonte em dev).
     std::string possiblePaths[] = { m_binaryPath.string(),
+#ifdef __APPLE__
+                                    // .app de verdade (Contents/MacOS/<bin> -> Contents/Resources/).
+                                    // PHYSFS_getBaseDir() no macOS da' a RAIZ do bundle, nao
+                                    // Contents/MacOS -- mas colocar data/modules/mods soltos na
+                                    // raiz do bundle (fora de Contents/) faz o codesign recusar
+                                    // assinar ("unsealed contents present in the bundle root"),
+                                    // e sem assinatura valida o Gatekeeper barra qualquer copia
+                                    // baixada da internet com "app esta danificado". Contents/
+                                    // Resources/ e' a convencao real da Apple: fica dentro de
+                                    // Contents/, entao o bundle inteiro pode ser assinado normal.
+                                    m_binaryPath.parent_path().parent_path().string() + "/Resources/",
+#endif
                                     g_platform.getCurrentDir(),
                                     g_resources.getBaseDir(),
                                     g_resources.getBaseDir() + "/game_data/",
@@ -460,10 +472,18 @@ std::string ResourceManager::getUserDir()
     return getBaseDir() + "/";
 #elif defined(__EMSCRIPTEN__)
     return "/user/";
-#elif defined(__APPLE__)
-    // Portable mode: store all user data next to the binary (no traces in ~/Library)
-    return PHYSFS_getBaseDir();
 #else
+    // Vetusia (2026-09-19): o "portable mode" antigo do macOS (guardar tudo
+    // do lado do binario, via PHYSFS_getBaseDir()) quebra pra qualquer copia
+    // baixada da internet -- quarentena do Gatekeeper aciona "App
+    // Translocation" no primeiro uso, que roda o .app de uma copia
+    // temporaria SO-LEITURA (fora do controle do usuario, nao tem como
+    // evitar so' com assinatura de codigo). Escrever nesse local falha
+    // sempre, silenciosamente (settings/log nunca gravam). PHYSFS_getPrefDir
+    // usa o diretorio de preferencias de verdade do SO (~/Library/
+    // Application Support/<app>/ no macOS, %APPDATA%/<org>/<app>/ no
+    // Windows, ~/.local/share/<app>/ no Linux) -- sempre gravavel,
+    // independente de onde o .app esteja rodando.
     static const char* orgName = g_app.getOrganizationName().data();
     static const char* appName = g_app.getCompactName().data();
 

@@ -47,6 +47,16 @@ jobs:
           vcpkgGitURL: "https://github.com/microsoft/vcpkg.git"
           vcpkgGitCommitId: ${{ env.VCPKG_GIT_COMMIT_ID }}
 
+      - name: Gerar gitinfo.h
+        # src/gitinfo.h e' gitignorado (gerado localmente por quem compila na mao);
+        # no runner do Actions, um clone limpo, o arquivo simplesmente nao existe e
+        # o build quebra em application.cpp com "Cannot open include file: 'gitinfo.h'".
+        shell: pwsh
+        run: |
+          $commits = (git rev-list --count HEAD).Trim()
+          $content = "#define GIT_BRANCH desenv`n#define GIT_VERSION 4.x`n#define GIT_COMMITS $commits`n"
+          Set-Content -Path client\src\gitinfo.h -Value $content -NoNewline
+
       - name: Configure + Build (CMake preset windows-release)
         uses: lukka/run-cmake@v10
         with:
