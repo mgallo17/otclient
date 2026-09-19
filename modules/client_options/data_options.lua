@@ -153,9 +153,9 @@ return {
         end
     },
     returnDisablesChat                = false,
-    smartWalk                         = false,
+    smartWalk                         = true,
     autoChaseOverride                 = true,
-    moveStack                         = false,
+    moveStack                         = true,
     showStatusMessagesInConsole       = true,
     showEventMessagesInConsole        = true,
     showInfoMessagesInConsole         = true,

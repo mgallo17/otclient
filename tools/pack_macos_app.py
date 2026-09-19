@@ -70,7 +70,7 @@ ICON_NAME = "vetusia"  # sem extensao, resolve pra vetusia.icns
 
 # So' o que o cliente realmente le em runtime (ver discoverWorkDir e os
 # modulos) -- igual ao INCLUDE de pack_portable.py.
-INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua", "minimap.otmm"]
+INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua", "minimap.otmm", "config.otml"]
 
 
 def build_info_plist(path: str):

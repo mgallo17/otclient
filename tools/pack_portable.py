@@ -42,7 +42,7 @@ import zipfile
 
 # So' o que o cliente realmente le em runtime (ver discoverWorkDir e os
 # modulos) -- nada de fonte C++, build/, .git, etc.
-INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua", "minimap.otmm"]
+INCLUDE = ["data", "modules", "mods", "init.lua", "otclientrc.lua", "minimap.otmm", "config.otml"]
 
 # O binario compilado se chama "otclient"/"otclient.exe" (CMakeLists.txt
 # ainda usa project(otclient), sem trocar isso o executavel que o
