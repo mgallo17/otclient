@@ -45,13 +45,15 @@ local function tryLogin(charInfo, tries)
 
     CharacterList.hide()
 
-    if g_app.getOs() ~= 'windows' and g_app.getOs() ~= 'linux' then
-        -- O servidor 7.7 original (bin/game leakado) so' aceita os <= 2
-        -- (HandleLogin rejeita o resto com "Your terminal version is too
-        -- old"), entao o id real do OTClient pra mac/android (11, 13, etc,
-        -- CLIENTOS_OTCLIENT_*) nao serve -- so' Linux(1) ou Windows(2).
-        g_game.setCustomOs(OsTypes.Windows) -- 2
-    end
+    -- O servidor 7.7 original (bin/game leakado, engine/src/communication.cc)
+    -- so' aceita TerminalType <= 2 (HandleLogin rejeita o resto com "Your
+    -- terminal version is too old") -- ISSO VALE PRA TODAS AS PLATAFORMAS,
+    -- nao so' mac/android: o OTClient usa seus PROPRIOS ids (Game::getOs(),
+    -- CLIENTOS_OTCLIENT_WINDOWS=11, _MAC=12, _LINUX=10), diferentes dos ids
+    -- classicos 0/1/2 que qualquer client real de 2006 mandava e que esse
+    -- engine especifico ainda espera. Sem essa forcada, ATE o Windows nativo
+    -- cai nesse erro (visto ao vivo em 2026-09-19).
+    g_game.setCustomOs(OsTypes.Windows) -- 2
 
     g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
                       charInfo.characterName, G.authenticatorToken, G.sessionKey)
