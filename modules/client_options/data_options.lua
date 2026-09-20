@@ -417,7 +417,10 @@ return {
     },
     hudScale                          = {
         event = nil,
-        value = g_platform.isMobile() and 2 or 0,
+        -- Vetusia: no mobile, 5 = 3.0x (formula abaixo: valor/2 + 0.5; 2 era
+        -- so' 1.5x e ficou pequeno demais no celular em teste real). Desktop
+        -- continua 0 (auto pela densidade da tela).
+        value = g_platform.isMobile() and 5 or 0,
         action = function(value, options, controller, panels, extraWidgets)
             value = value / 2
 
@@ -435,7 +438,7 @@ return {
         end
     },
     creatureInformationScale          = {
-        value = g_platform.isMobile() and 2 or 0,
+        value = g_platform.isMobile() and 4 or 0,  -- Vetusia: 2.5x no mobile (era 1.5x)
         action = function(value, options, controller, panels, extraWidgets)
             if value == 0 then
                 value = g_window.getDisplayDensity() - 0.5
@@ -448,7 +451,7 @@ return {
         end
     },
     staticTextScale                   = {
-        value = g_platform.isMobile() and 2 or 0,
+        value = g_platform.isMobile() and 4 or 0,  -- Vetusia: 2.5x no mobile (era 1.5x)
         action = function(value, options, controller, panels, extraWidgets)
             if value == 0 then
                 value = g_window.getDisplayDensity() - 0.5
@@ -461,7 +464,7 @@ return {
         end
     },
     animatedTextScale                 = {
-        value = g_platform.isMobile() and 2 or 0,
+        value = g_platform.isMobile() and 4 or 0,  -- Vetusia: 2.5x no mobile (era 1.5x)
         action = function(value, options, controller, panels, extraWidgets)
             if value == 0 then
                 value = g_window.getDisplayDensity() - 0.5
