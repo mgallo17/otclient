@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> Este repositorio esta' **congelado desde 2026-09-21** e nao deve mais ser
+> usado como fonte. O client do Vetusia agora e' mantido direto em
+> `client/` dentro de [mgallo17/vetusia-server](https://github.com/mgallo17/vetusia-server) --
+> edite e commite la'. O README abaixo e' o generico do projeto upstream
+> (`mehah/otclient`) e nao descreve as customizacoes do fork Vetusia.
 
 <h1>
   <img src="https://github.com/mehah/otclient/blob/main/data/images/clienticon.png?raw=true" width="32" alt="logo"/>
