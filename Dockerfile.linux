@@ -1,0 +1,56 @@
+# Build Vetusia client pra Linux x64, local, sem depender do GitHub Actions
+# (que tambem tem um workflow pra isso, .github/workflows/build-vetusia-
+# linux.yml no vetusia-server, pausado por pedido do usuario -- esse
+# Dockerfile e' o caminho rapido, rodando no Mac via emulacao amd64).
+#
+# docker build --platform linux/amd64 -f Dockerfile.linux -t otclient-linux .
+#
+# Licoes desta sessao aplicadas aqui direto (evita repetir os 3 bugs que
+# so' apareceram nos outros clientes depois de publicados):
+#   1. Sem -DTOGGLE_BIN_FOLDER=ON, o binario compilado vai pra
+#      CMAKE_SOURCE_DIR (a raiz do client), NAO pra dentro de build/ --
+#      o pack_portable.py procura la' direto, sem adivinhar.
+#   2. mods/client_mods (mod loader, obrigatorio) e default_minimap.otmm
+#      (minimapa pre-explorado) precisam estar rastreados no git com o
+#      .gitattributes correto (binary pro .otmm) -- ja' corrigido no
+#      repo, aqui so' um "COPY . /otclient" de verdade garante que o que
+#      esta' no disco (que E' o que esta' no git agora) vai junto.
+#   3. src/gitinfo.h e' gitignorado; se nao existir no disco local antes
+#      do build, gera aqui mesmo (mesmo fix aplicado no workflow do
+#      Windows).
+
+FROM ubuntu:24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf autoconf-archive automake build-essential ca-certificates \
+    ccache cmake curl g++ gcc git libgl1-mesa-dev libglu1-mesa-dev \
+    libltdl-dev libtool libx11-dev libxcursor-dev libxi-dev \
+    libxinerama-dev libxrandr-dev make ninja-build perl pkg-config \
+    python3 tar unzip zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+RUN git clone https://github.com/microsoft/vcpkg.git && cd vcpkg && ./bootstrap-vcpkg.sh
+ENV VCPKG_ROOT=/opt/vcpkg
+
+WORKDIR /otclient
+COPY . /otclient
+
+# Gera gitinfo.h so' se nao vier do disco local (ver nota 3 acima).
+RUN if [ ! -f src/gitinfo.h ]; then \
+      commits=$(git rev-list --count HEAD 2>/dev/null || echo 0); \
+      printf '#define GIT_BRANCH desenv\n#define GIT_VERSION 4.x\n#define GIT_COMMITS %s\n' "$commits" > src/gitinfo.h; \
+    fi
+
+RUN cmake --preset linux-release \
+      -DOTCLIENT_BUILD_TESTS=OFF -DOPTIONS_ENABLE_IPO=OFF -DOPTIONS_ENABLE_CCACHE=OFF \
+    && cmake --build --preset linux-release
+
+# Binario vai pra CMAKE_SOURCE_DIR (ver nota 1) -- empacota dali direto.
+RUN python3 tools/pack_portable.py otclient dist/vetusia-linux --data-dir . --tar \
+    && ls -la dist/
+
+FROM scratch AS artifact
+COPY --from=builder /otclient/dist/vetusia-linux.tar.gz /vetusia-linux.tar.gz
